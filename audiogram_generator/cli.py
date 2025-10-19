@@ -29,6 +29,22 @@ def get_podcast_episodes():
     # Registra namespace
     namespaces = {'podcast': 'https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/1.0.md'}
 
+    # Estrai informazioni del podcast (locandina e titolo)
+    podcast_info = {}
+    channel = root.find('.//channel')
+    if channel is not None:
+        # Titolo del podcast
+        title_elem = channel.find('title')
+        if title_elem is not None and title_elem.text:
+            podcast_info['title'] = title_elem.text.strip()
+
+        # Locandina del podcast
+        image_elem = channel.find('image')
+        if image_elem is not None:
+            url_elem = image_elem.find('url')
+            if url_elem is not None and url_elem.text:
+                podcast_info['image_url'] = url_elem.text.strip()
+
     # Trova tutti gli item e i loro soundbites, transcript e audio
     transcript_by_guid = {}
     audio_by_guid = {}
@@ -84,7 +100,7 @@ def get_podcast_episodes():
         }
         episodes.append(episode)
 
-    return episodes
+    return episodes, podcast_info
 
 
 def parse_srt_time(time_str):
@@ -144,11 +160,18 @@ def get_transcript_text(transcript_url, start_time, duration):
 def main():
     """Funzione principale CLI"""
     print("Recupero episodi dal feed...")
-    episodes = get_podcast_episodes()
+    episodes, podcast_info = get_podcast_episodes()
 
     if not episodes:
         print("Nessun episodio trovato nel feed.")
         return
+
+    # Mostra informazioni podcast
+    print(f"\n{'='*60}")
+    print(f"Podcast: {podcast_info.get('title', 'N/A')}")
+    if podcast_info.get('image_url'):
+        print(f"Locandina: {podcast_info['image_url']}")
+    print(f"{'='*60}")
 
     # Mostra episodi dal primo all'ultimo
     print(f"\nTrovati {len(episodes)} episodi:\n")
