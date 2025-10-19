@@ -5,6 +5,7 @@ import feedparser
 import ssl
 import urllib.request
 import xml.etree.ElementTree as ET
+import re
 
 
 def get_podcast_episodes():
@@ -28,11 +29,14 @@ def get_podcast_episodes():
     # Registra namespace
     namespaces = {'podcast': 'https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/1.0.md'}
 
-    # Trova tutti gli item e i loro soundbites
+    # Trova tutti gli item e i loro soundbites e transcript
+    transcript_by_guid = {}
     for item in root.findall('.//item'):
         guid_elem = item.find('guid')
         if guid_elem is not None:
             guid = guid_elem.text.strip() if guid_elem.text else ''
+
+            # Estrai soundbites
             soundbites = []
             for sb in item.findall('podcast:soundbite', namespaces):
                 soundbites.append({
@@ -42,6 +46,13 @@ def get_podcast_episodes():
                 })
             if soundbites:
                 soundbites_by_guid[guid] = soundbites
+
+            # Estrai URL transcript
+            transcript_elem = item.find('podcast:transcript', namespaces)
+            if transcript_elem is not None:
+                transcript_url = transcript_elem.get('url')
+                if transcript_url:
+                    transcript_by_guid[guid] = transcript_url
 
     feed = feedparser.parse(feed_content)
 
@@ -59,11 +70,66 @@ def get_podcast_episodes():
             'title': entry.get('title', 'Senza titolo'),
             'link': entry.get('link', ''),
             'description': entry.get('description', ''),
-            'soundbites': soundbites_by_guid.get(guid, [])
+            'soundbites': soundbites_by_guid.get(guid, []),
+            'transcript_url': transcript_by_guid.get(guid, None)
         }
         episodes.append(episode)
 
     return episodes
+
+
+def parse_srt_time(time_str):
+    """Converte un timestamp SRT in secondi"""
+    # Formato: 00:00:10,500 -> 10.5 secondi
+    time_str = time_str.replace(',', '.')
+    parts = time_str.split(':')
+    hours = int(parts[0])
+    minutes = int(parts[1])
+    seconds = float(parts[2])
+    return hours * 3600 + minutes * 60 + seconds
+
+
+def get_transcript_text(transcript_url, start_time, duration):
+    """Scarica il file SRT e estrae il testo nel range temporale"""
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+
+    try:
+        request = urllib.request.Request(transcript_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(request, context=ssl_context) as response:
+            srt_content = response.read().decode('utf-8')
+
+        start_time_sec = float(start_time)
+        end_time_sec = start_time_sec + float(duration)
+
+        # Parsa il file SRT
+        # Formato: numero\ntimestamp --> timestamp\ntesto\n\n
+        entries = re.split(r'\n\n+', srt_content.strip())
+
+        transcript_lines = []
+        for entry in entries:
+            lines = entry.strip().split('\n')
+            if len(lines) >= 3:
+                # lines[0] = numero
+                # lines[1] = timestamp
+                # lines[2+] = testo
+                timestamp_line = lines[1]
+                if '-->' in timestamp_line:
+                    time_parts = timestamp_line.split('-->')
+                    entry_start = parse_srt_time(time_parts[0].strip())
+                    entry_end = parse_srt_time(time_parts[1].strip())
+
+                    # Verifica se questo entry è nel range del soundbite
+                    if (entry_start >= start_time_sec and entry_start < end_time_sec) or \
+                       (entry_end > start_time_sec and entry_end <= end_time_sec) or \
+                       (entry_start <= start_time_sec and entry_end >= end_time_sec):
+                        text = ' '.join(lines[2:])
+                        transcript_lines.append(text)
+
+        return ' '.join(transcript_lines) if transcript_lines else None
+    except Exception as e:
+        return None
 
 
 def main():
@@ -107,7 +173,20 @@ def main():
     if selected['soundbites']:
         print(f"\nSoundbites trovati ({len(selected['soundbites'])}):")
         for i, soundbite in enumerate(selected['soundbites'], 1):
-            print(f"  {i}. [Inizio: {soundbite['start']}s, Durata: {soundbite['duration']}s] {soundbite['text']}")
+            print(f"\n  {i}. [Inizio: {soundbite['start']}s, Durata: {soundbite['duration']}s]")
+            print(f"     Titolo: {soundbite['text']}")
+
+            # Estrai testo dalla trascrizione se disponibile
+            if selected['transcript_url']:
+                transcript_text = get_transcript_text(
+                    selected['transcript_url'],
+                    soundbite['start'],
+                    soundbite['duration']
+                )
+                if transcript_text:
+                    print(f"     Testo: {transcript_text}")
+                else:
+                    print(f"     Testo: [Non disponibile]")
     else:
         print("\nNessun soundbite trovato per questo episodio.")
 
