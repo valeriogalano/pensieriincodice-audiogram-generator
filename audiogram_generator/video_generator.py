@@ -39,7 +39,7 @@ def download_image(url, output_path):
             f.write(response.read())
 
 
-def get_waveform_data(audio_path, num_bars=50):
+def get_waveform_data(audio_path, num_bars=100):
     """Estrae dati waveform dall'audio"""
     audio = AudioSegment.from_file(audio_path)
     samples = np.array(audio.get_array_of_samples())
@@ -49,13 +49,13 @@ def get_waveform_data(audio_path, num_bars=50):
         samples = samples.astype(float)
         samples = samples / np.max(np.abs(samples))
 
-    # Dividi in segmenti
-    chunk_size = len(samples) // num_bars
+    # Dividi in segmenti per creare più bars
+    chunk_size = max(1, len(samples) // num_bars)
     bars = []
     for i in range(num_bars):
         start = i * chunk_size
-        end = start + chunk_size
-        if end <= len(samples):
+        end = min(start + chunk_size, len(samples))
+        if start < len(samples):
             chunk = samples[start:end]
             bars.append(np.abs(chunk).mean())
 
@@ -103,7 +103,45 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
     central_height = int(height * 0.60)
     central_bottom = central_top + central_height
 
-    # Logo podcast al centro
+    # Waveform che scorre orizzontalmente attraverso lo schermo
+    if waveform_data is not None and len(waveform_data) > 0:
+        bar_width = 8
+        bar_spacing = 4
+        total_bar_width = bar_width + bar_spacing
+
+        # Numero di bars visibili sullo schermo
+        num_visible_bars = (width // total_bar_width) + 2
+
+        # Calcola lo scroll offset basandosi sul progresso
+        progress = current_time / audio_duration if audio_duration > 0 else 0
+        total_scroll = num_visible_bars * total_bar_width
+        scroll_offset = int(progress * total_scroll) % total_bar_width
+
+        # Calcola l'indice iniziale nella waveform
+        bars_passed = int(progress * len(waveform_data))
+
+        # Disegna le bars che scorrono da destra a sinistra
+        for i in range(num_visible_bars):
+            # Posizione x della bar (da destra verso sinistra con scroll)
+            x = width - (i * total_bar_width) + scroll_offset
+
+            # Indice nella waveform (ciclico)
+            waveform_idx = (bars_passed + i) % len(waveform_data)
+
+            if -bar_width <= x <= width:  # Disegna solo se visibile
+                # Altezza della bar basata sull'ampiezza della waveform
+                amplitude = waveform_data[waveform_idx]
+                bar_height = int(amplitude * central_height * 0.7)
+                bar_height = max(15, bar_height)
+
+                # Centra verticalmente nell'area centrale
+                y_center = central_top + central_height // 2
+                y_top = y_center - bar_height // 2
+                y_bottom = y_center + bar_height // 2
+
+                draw.rectangle([(x, y_top), (x + bar_width, y_bottom)], fill=COLOR_ORANGE)
+
+    # Logo podcast al centro (sopra la waveform)
     if os.path.exists(podcast_logo_path):
         logo = Image.open(podcast_logo_path)
         logo_size = int(min(width, central_height) * 0.4)
@@ -113,35 +151,6 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
         logo_x = (width - logo_size) // 2
         logo_y = central_top + (central_height - logo_size) // 2
         img.paste(logo, (logo_x, logo_y), logo if logo.mode == 'RGBA' else None)
-
-    # Waveform animata ai lati
-    if waveform_data is not None and len(waveform_data) > 0:
-        bar_width = 6
-        bar_spacing = 3
-        num_bars = min(15, len(waveform_data))
-
-        # Calcola quale parte della waveform mostrare basandosi sul tempo corrente
-        progress = current_time / audio_duration if audio_duration > 0 else 0
-        center_idx = int(progress * len(waveform_data))
-
-        for side in ['left', 'right']:
-            for i in range(num_bars):
-                # Indice nella waveform
-                idx = center_idx + i - num_bars // 2
-                if 0 <= idx < len(waveform_data):
-                    bar_height = int(waveform_data[idx] * central_height * 0.6)
-                    bar_height = max(10, bar_height)
-
-                    if side == 'left':
-                        x = 30 + i * (bar_width + bar_spacing)
-                    else:
-                        x = width - 30 - (num_bars - i) * (bar_width + bar_spacing)
-
-                    y_center = central_top + central_height // 2
-                    y_top = y_center - bar_height // 2
-                    y_bottom = y_center + bar_height // 2
-
-                    draw.rectangle([(x, y_top), (x + bar_width, y_bottom)], fill=COLOR_ORANGE)
 
     # Footer arancione (25% altezza)
     footer_top = central_bottom
@@ -253,7 +262,7 @@ def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
     Args:
         audio_path: Percorso del file audio
         output_path: Percorso del file video di output
-        format_name: Nome del formato ('reel', 'post', 'story')
+        format_name: Nome del formato ('vertical', 'square', 'horizontal')
         podcast_logo_path: Percorso logo podcast
         podcast_title: Titolo del podcast
         episode_title: Titolo dell'episodio
@@ -261,16 +270,27 @@ def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
         duration: Durata del video
     """
     width, height = FORMATS[format_name]
-    fps = 30
+    fps = 24  # Riduci da 30 a 24 fps per velocizzare
 
-    # Estrai waveform
+    print(f"  - Estrazione waveform...")
+    # Estrai waveform una sola volta
     waveform_data = get_waveform_data(audio_path)
 
+    print(f"  - Pre-caricamento logo...")
+    # Pre-carica e ridimensiona il logo una sola volta
+    logo_img = None
+    if os.path.exists(podcast_logo_path):
+        logo = Image.open(podcast_logo_path)
+        central_height = int(height * 0.60)
+        logo_size = int(min(width, central_height) * 0.4)
+        logo_img = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
+
+    print(f"  - Generazione frame video...")
     # Funzione per generare frame
     def make_frame(t):
         return create_audiogram_frame(
             width, height,
-            podcast_logo_path,
+            podcast_logo_path,  # Passiamo il path per compatibilità
             podcast_title,
             episode_title,
             waveform_data,
@@ -283,9 +303,18 @@ def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
     video = VideoClip(make_frame, duration=duration)
     video.fps = fps
 
+    print(f"  - Aggiunta audio...")
     # Aggiungi audio
     audio = AudioFileClip(audio_path)
     video = video.with_audio(audio)
 
-    # Esporta
-    video.write_videofile(output_path, codec='libx264', audio_codec='aac', fps=fps)
+    print(f"  - Rendering video...")
+    # Esporta con threads per velocizzare
+    video.write_videofile(
+        output_path,
+        codec='libx264',
+        audio_codec='aac',
+        fps=fps,
+        threads=4,
+        preset='medium'  # Bilancia velocità/qualità
+    )
