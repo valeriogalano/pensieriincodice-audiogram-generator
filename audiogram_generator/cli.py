@@ -29,8 +29,9 @@ def get_podcast_episodes():
     # Registra namespace
     namespaces = {'podcast': 'https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/1.0.md'}
 
-    # Trova tutti gli item e i loro soundbites e transcript
+    # Trova tutti gli item e i loro soundbites, transcript e audio
     transcript_by_guid = {}
+    audio_by_guid = {}
     for item in root.findall('.//item'):
         guid_elem = item.find('guid')
         if guid_elem is not None:
@@ -54,6 +55,13 @@ def get_podcast_episodes():
                 if transcript_url:
                     transcript_by_guid[guid] = transcript_url
 
+            # Estrai URL audio da enclosure
+            enclosure_elem = item.find('enclosure')
+            if enclosure_elem is not None:
+                audio_url = enclosure_elem.get('url')
+                if audio_url:
+                    audio_by_guid[guid] = audio_url
+
     feed = feedparser.parse(feed_content)
 
     episodes = []
@@ -71,7 +79,8 @@ def get_podcast_episodes():
             'link': entry.get('link', ''),
             'description': entry.get('description', ''),
             'soundbites': soundbites_by_guid.get(guid, []),
-            'transcript_url': transcript_by_guid.get(guid, None)
+            'transcript_url': transcript_by_guid.get(guid, None),
+            'audio_url': audio_by_guid.get(guid, None)
         }
         episodes.append(episode)
 
@@ -168,6 +177,8 @@ def main():
             break
 
     print(f"\nEpisodio {selected['number']}: {selected['title']}")
+    if selected['audio_url']:
+        print(f"Audio: {selected['audio_url']}")
 
     # Mostra soundbites se esistono
     if selected['soundbites']:
