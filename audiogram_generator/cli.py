@@ -48,9 +48,9 @@ def get_podcast_episodes():
     episodes = []
     total_episodes = len(feed.entries)
 
-    for idx, entry in enumerate(feed.entries):
-        # Calcola il numero dell'episodio (dal più recente al più vecchio)
-        episode_number = total_episodes - idx
+    for idx, entry in enumerate(reversed(feed.entries)):
+        # Calcola il numero dell'episodio (dal più vecchio al più recente)
+        episode_number = idx + 1
 
         guid = entry.get('guid', entry.get('id', ''))
 
@@ -75,7 +75,7 @@ def main():
         print("Nessun episodio trovato nel feed.")
         return
 
-    # Mostra episodi a ritroso (dal più recente)
+    # Mostra episodi dal primo all'ultimo
     print(f"\nTrovati {len(episodes)} episodi:\n")
     for episode in episodes:
         print(f"{episode['number']}. {episode['title']}")
