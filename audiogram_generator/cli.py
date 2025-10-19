@@ -6,6 +6,10 @@ import ssl
 import urllib.request
 import xml.etree.ElementTree as ET
 import re
+import os
+import tempfile
+from .audio_utils import download_audio, extract_audio_segment
+from .video_generator import generate_audiogram, download_image
 
 
 def get_podcast_episodes():
@@ -157,6 +161,50 @@ def get_transcript_text(transcript_url, start_time, duration):
         return None
 
 
+def get_transcript_chunks(transcript_url, start_time, duration):
+    """Scarica il file SRT e restituisce chunk di testo con timing per il soundbite"""
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+
+    try:
+        request = urllib.request.Request(transcript_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(request, context=ssl_context) as response:
+            srt_content = response.read().decode('utf-8')
+
+        start_time_sec = float(start_time)
+        end_time_sec = start_time_sec + float(duration)
+
+        # Parsa il file SRT
+        entries = re.split(r'\n\n+', srt_content.strip())
+
+        transcript_chunks = []
+        for entry in entries:
+            lines = entry.strip().split('\n')
+            if len(lines) >= 3:
+                timestamp_line = lines[1]
+                if '-->' in timestamp_line:
+                    time_parts = timestamp_line.split('-->')
+                    entry_start = parse_srt_time(time_parts[0].strip())
+                    entry_end = parse_srt_time(time_parts[1].strip())
+
+                    # Verifica se questo entry è nel range del soundbite
+                    if (entry_start >= start_time_sec and entry_start < end_time_sec) or \
+                       (entry_end > start_time_sec and entry_end <= end_time_sec) or \
+                       (entry_start <= start_time_sec and entry_end >= end_time_sec):
+                        text = ' '.join(lines[2:])
+                        # Converti timing relativi al soundbite (inizia da 0)
+                        transcript_chunks.append({
+                            'start': max(0, entry_start - start_time_sec),
+                            'end': min(float(duration), entry_end - start_time_sec),
+                            'text': text
+                        })
+
+        return transcript_chunks
+    except Exception as e:
+        return []
+
+
 def main():
     """Funzione principale CLI"""
     print("Recupero episodi dal feed...")
@@ -218,9 +266,88 @@ def main():
                     soundbite['duration']
                 )
                 if transcript_text:
-                    print(f"     Testo: {transcript_text}")
+                    print(f"     Testo: {transcript_text[:100]}..." if len(transcript_text) > 100 else f"     Testo: {transcript_text}")
                 else:
                     print(f"     Testo: [Non disponibile]")
+
+        # Chiedi quale soundbite generare
+        print("\n" + "="*60)
+        choice = input("\nVuoi generare audiogram per un soundbite? (numero o 'n' per uscire): ")
+
+        if choice.lower() != 'n':
+            try:
+                soundbite_num = int(choice)
+                if 1 <= soundbite_num <= len(selected['soundbites']):
+                    soundbite = selected['soundbites'][soundbite_num - 1]
+
+                    print(f"\nGenerazione audiogram per: {soundbite['text']}")
+
+                    # Crea directory temporanea
+                    with tempfile.TemporaryDirectory() as temp_dir:
+                        # Scarica audio completo
+                        print("Download audio...")
+                        full_audio_path = os.path.join(temp_dir, "full_audio.mp3")
+                        download_audio(selected['audio_url'], full_audio_path)
+
+                        # Estrai segmento
+                        print("Estrazione segmento audio...")
+                        segment_path = os.path.join(temp_dir, "segment.mp3")
+                        extract_audio_segment(
+                            full_audio_path,
+                            soundbite['start'],
+                            soundbite['duration'],
+                            segment_path
+                        )
+
+                        # Scarica logo
+                        print("Download locandina...")
+                        logo_path = os.path.join(temp_dir, "logo.png")
+                        download_image(podcast_info['image_url'], logo_path)
+
+                        # Ottieni chunk trascrizione
+                        print("Elaborazione trascrizione...")
+                        transcript_chunks = []
+                        if selected['transcript_url']:
+                            transcript_chunks = get_transcript_chunks(
+                                selected['transcript_url'],
+                                soundbite['start'],
+                                soundbite['duration']
+                            )
+
+                        # Crea directory output
+                        output_dir = os.path.join(os.getcwd(), 'output')
+                        os.makedirs(output_dir, exist_ok=True)
+
+                        # Genera audiogram per ogni formato
+                        for format_name in ['reel', 'post', 'story']:
+                            print(f"\nGenerazione audiogram formato {format_name}...")
+                            output_path = os.path.join(
+                                output_dir,
+                                f"ep{selected['number']}_sb{soundbite_num}_{format_name}.mp4"
+                            )
+
+                            generate_audiogram(
+                                segment_path,
+                                output_path,
+                                format_name,
+                                logo_path,
+                                podcast_info['title'],
+                                soundbite['text'],
+                                transcript_chunks,
+                                float(soundbite['duration'])
+                            )
+
+                            print(f"✓ {format_name}: {output_path}")
+
+                    print(f"\n{'='*60}")
+                    print(f"Audiogram generati con successo nella cartella 'output'!")
+                    print(f"{'='*60}")
+                else:
+                    print(f"Numero non valido. Scegli tra 1 e {len(selected['soundbites'])}")
+            except ValueError:
+                print("Input non valido")
+            except Exception as e:
+                print(f"Errore durante la generazione: {e}")
     else:
         print("\nNessun soundbite trovato per questo episodio.")
 
