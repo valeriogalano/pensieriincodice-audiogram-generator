@@ -112,24 +112,26 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
         # Numero di bars visibili sullo schermo
         num_visible_bars = (width // total_bar_width) + 2
 
-        # Calcola lo scroll offset basandosi sul progresso
+        # Calcola l'indice corrente nella waveform basato sul tempo
         progress = current_time / audio_duration if audio_duration > 0 else 0
-        total_scroll = num_visible_bars * total_bar_width
-        scroll_offset = int(progress * total_scroll) % total_bar_width
+        current_bar_idx = int(progress * len(waveform_data))
 
-        # Calcola l'indice iniziale nella waveform
-        bars_passed = int(progress * len(waveform_data))
+        # Offset pixel per lo scroll fluido
+        bars_per_second = len(waveform_data) / audio_duration
+        pixels_per_second = bars_per_second * total_bar_width
+        pixel_offset = int((current_time * pixels_per_second) % total_bar_width)
 
         # Disegna le bars che scorrono da destra a sinistra
         for i in range(num_visible_bars):
-            # Posizione x della bar (da destra verso sinistra con scroll)
-            x = width - (i * total_bar_width) + scroll_offset
+            # Posizione x della bar (scorre da destra a sinistra)
+            x = width - (i * total_bar_width) + pixel_offset
 
-            # Indice nella waveform (ciclico)
-            waveform_idx = (bars_passed + i) % len(waveform_data)
+            # Indice nella waveform: bar corrente + offset per le bars successive
+            # Le bars a destra mostrano l'audio futuro
+            waveform_idx = current_bar_idx + i
 
-            if -bar_width <= x <= width:  # Disegna solo se visibile
-                # Altezza della bar basata sull'ampiezza della waveform
+            if waveform_idx < len(waveform_data) and -bar_width <= x <= width:
+                # Altezza della bar basata sull'ampiezza reale della waveform
                 amplitude = waveform_data[waveform_idx]
                 bar_height = int(amplitude * central_height * 0.7)
                 bar_height = max(15, bar_height)
