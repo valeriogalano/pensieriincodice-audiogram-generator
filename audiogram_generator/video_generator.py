@@ -39,8 +39,17 @@ def download_image(url, output_path):
             f.write(response.read())
 
 
-def get_waveform_data(audio_path, num_bars=100):
-    """Estrae dati waveform dall'audio"""
+def get_waveform_data(audio_path, fps=24):
+    """
+    Estrae dati waveform dall'audio campionati per frame
+
+    Args:
+        audio_path: Percorso del file audio
+        fps: Frame per secondo del video
+
+    Returns:
+        Array di ampiezze per ogni frame del video
+    """
     audio = AudioSegment.from_file(audio_path)
     samples = np.array(audio.get_array_of_samples())
 
@@ -49,17 +58,22 @@ def get_waveform_data(audio_path, num_bars=100):
         samples = samples.astype(float)
         samples = samples / np.max(np.abs(samples))
 
-    # Dividi in segmenti per creare più bars
-    chunk_size = max(1, len(samples) // num_bars)
-    bars = []
-    for i in range(num_bars):
-        start = i * chunk_size
-        end = min(start + chunk_size, len(samples))
+    # Calcola quanti campioni audio per frame video
+    sample_rate = audio.frame_rate
+    duration_seconds = len(audio) / 1000.0
+    total_frames = int(duration_seconds * fps)
+    samples_per_frame = len(samples) // total_frames if total_frames > 0 else len(samples)
+
+    # Estrai ampiezza media per ogni frame
+    frame_amplitudes = []
+    for i in range(total_frames):
+        start = i * samples_per_frame
+        end = min(start + samples_per_frame, len(samples))
         if start < len(samples):
             chunk = samples[start:end]
-            bars.append(np.abs(chunk).mean())
+            frame_amplitudes.append(np.abs(chunk).mean())
 
-    return np.array(bars)
+    return np.array(frame_amplitudes)
 
 
 def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, episode_title,
@@ -103,45 +117,57 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
     central_height = int(height * 0.60)
     central_bottom = central_top + central_height
 
-    # Waveform che scorre orizzontalmente attraverso lo schermo
+    # Visualizzatore waveform tipo equalizer che "balla" con l'audio
     if waveform_data is not None and len(waveform_data) > 0:
-        bar_width = 8
-        bar_spacing = 4
+        # Configurazione bars - usa tutta la larghezza dello schermo
+        bar_spacing = 3
+        bar_width = 12
         total_bar_width = bar_width + bar_spacing
 
-        # Numero di bars visibili sullo schermo
-        num_visible_bars = (width // total_bar_width) + 2
+        # Calcola quante bars entrano nella larghezza
+        num_bars = width // total_bar_width
+        # Rendi pari per simmetria
+        if num_bars % 2 != 0:
+            num_bars -= 1
 
-        # Calcola l'indice corrente nella waveform basato sul tempo
-        progress = current_time / audio_duration if audio_duration > 0 else 0
-        current_bar_idx = int(progress * len(waveform_data))
+        # Ottieni l'ampiezza corrente dell'audio in questo momento
+        frame_idx = int((current_time / audio_duration) * len(waveform_data)) if audio_duration > 0 else 0
+        frame_idx = min(frame_idx, len(waveform_data) - 1)
+        current_amplitude = waveform_data[frame_idx]
 
-        # Offset pixel per lo scroll fluido
-        bars_per_second = len(waveform_data) / audio_duration
-        pixels_per_second = bars_per_second * total_bar_width
-        pixel_offset = int((current_time * pixels_per_second) % total_bar_width)
+        # Crea pattern simmetrico con variazione casuale ma controllata
+        # Ogni bar ha una "sensibilità" diversa alle frequenze
+        np.random.seed(42)  # Seed fisso per consistenza tra frame
+        sensitivities = np.random.uniform(0.6, 1.4, num_bars // 2)
+        sensitivities = np.concatenate([sensitivities, sensitivities[::-1]])  # Simmetria
 
-        # Disegna le bars che scorrono da destra a sinistra
-        for i in range(num_visible_bars):
-            # Posizione x della bar (scorre da destra a sinistra)
-            x = width - (i * total_bar_width) + pixel_offset
+        # Disegna le bars da sinistra a destra
+        for i in range(num_bars):
+            x = i * total_bar_width
 
-            # Indice nella waveform: bar corrente + offset per le bars successive
-            # Le bars a destra mostrano l'audio futuro
-            waveform_idx = current_bar_idx + i
+            # Calcola altezza bar con pattern simmetrico dal centro
+            center_idx = num_bars // 2
+            distance_from_center = abs(i - center_idx)
 
-            if waveform_idx < len(waveform_data) and -bar_width <= x <= width:
-                # Altezza della bar basata sull'ampiezza reale della waveform
-                amplitude = waveform_data[waveform_idx]
-                bar_height = int(amplitude * central_height * 0.7)
-                bar_height = max(15, bar_height)
+            # Le bars centrali sono più reattive
+            center_boost = 1.0 + (1.0 - distance_from_center / center_idx) * 0.4
 
-                # Centra verticalmente nell'area centrale
-                y_center = central_top + central_height // 2
-                y_top = y_center - bar_height // 2
-                y_bottom = y_center + bar_height // 2
+            # Ampiezza finale con sensibilità e boost
+            bar_amplitude = current_amplitude * sensitivities[i] * center_boost
 
-                draw.rectangle([(x, y_top), (x + bar_width, y_bottom)], fill=COLOR_ORANGE)
+            # Altezza minima e massima
+            min_height = int(central_height * 0.12)
+            max_height = int(central_height * 0.80)
+            bar_height = int(min_height + (bar_amplitude * (max_height - min_height)))
+            bar_height = max(min_height, min(bar_height, max_height))
+
+            # Centra verticalmente
+            y_center = central_top + central_height // 2
+            y_top = y_center - bar_height // 2
+            y_bottom = y_center + bar_height // 2
+
+            # Disegna la bar
+            draw.rectangle([(x, y_top), (x + bar_width, y_bottom)], fill=COLOR_ORANGE)
 
     # Logo podcast al centro (sopra la waveform)
     if os.path.exists(podcast_logo_path):
@@ -275,8 +301,8 @@ def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
     fps = 24  # Riduci da 30 a 24 fps per velocizzare
 
     print(f"  - Estrazione waveform...")
-    # Estrai waveform una sola volta
-    waveform_data = get_waveform_data(audio_path)
+    # Estrai waveform una sola volta, campionata per frame
+    waveform_data = get_waveform_data(audio_path, fps=fps)
 
     print(f"  - Pre-caricamento logo...")
     # Pre-carica e ridimensiona il logo una sola volta
