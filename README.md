@@ -74,7 +74,9 @@ pip3 install -r requirements.txt
 
 ## Utilizzo
 
-Avvia l'applicazione:
+### Modalità interattiva
+
+Avvia l'applicazione senza argomenti per la modalità interattiva:
 ```bash
 python3 -m audiogram_generator
 ```
@@ -84,10 +86,46 @@ Il tool ti guiderà attraverso:
 2. Elenco di tutti gli episodi disponibili (dal primo all'ultimo)
 3. Selezione dell'episodio desiderato
 4. Visualizzazione dei soundbites disponibili con le relative trascrizioni
-5. Selezione del soundbite da convertire
+5. Selezione del soundbite da convertire (singolo, multiplo o tutti)
 6. Generazione automatica di tre video audiogrammi in formati diversi
 
-I video generati vengono salvati nella directory `output/` con naming:
+### Modalità riga di comando
+
+Per automatizzare il processo, è possibile specificare tutti i parametri tramite argomenti:
+
+```bash
+python3 -m audiogram_generator [opzioni]
+```
+
+**Opzioni disponibili:**
+
+- `--feed-url URL` - URL del feed RSS del podcast (default: feed di Pensieri in Codice)
+- `--episode N` - Numero dell'episodio da processare (1-N)
+- `--soundbites SCELTA` - Soundbites da generare:
+  - Numero specifico: `1`, `2`, `3`, ecc.
+  - Lista separata da virgola: `1,3,5`
+  - Tutti i soundbites: `all` o `a`
+- `--output-dir PATH` - Directory di output per i video generati (default: `./output`)
+
+**Esempi:**
+
+```bash
+# Genera tutti i soundbites dell'episodio 142
+python3 -m audiogram_generator --episode 142 --soundbites all
+
+# Genera solo i soundbites 1 e 3 dell'episodio 100
+python3 -m audiogram_generator --episode 100 --soundbites 1,3
+
+# Genera il soundbite 2 dell'episodio 50 in una directory custom
+python3 -m audiogram_generator --episode 50 --soundbites 2 --output-dir ~/videos
+
+# Usa un feed RSS personalizzato
+python3 -m audiogram_generator --feed-url https://esempio.com/feed.xml --episode 5 --soundbites all
+```
+
+### Output
+
+I video generati vengono salvati nella directory specificata (default: `output/`) con naming:
 ```
 ep{numero_episodio}_sb{numero_soundbite}_{formato}.mp4
 ```

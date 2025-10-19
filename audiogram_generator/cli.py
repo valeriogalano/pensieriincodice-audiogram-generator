@@ -8,13 +8,15 @@ import xml.etree.ElementTree as ET
 import re
 import os
 import tempfile
+import argparse
 from .audio_utils import download_audio, extract_audio_segment
 from .video_generator import generate_audiogram, download_image
 
 
-def get_podcast_episodes():
+def get_podcast_episodes(feed_url=None):
     """Recupera la lista degli episodi dal feed RSS"""
-    feed_url = "https://pensieriincodice.it/podcast/index.xml"
+    if feed_url is None:
+        feed_url = "https://pensieriincodice.it/podcast/index.xml"
 
     # Crea un contesto SSL che non verifica i certificati
     ssl_context = ssl.create_default_context()
@@ -207,8 +209,23 @@ def get_transcript_chunks(transcript_url, start_time, duration):
 
 def main():
     """Funzione principale CLI"""
+    # Parsing argomenti
+    parser = argparse.ArgumentParser(description='Generatore di audiogrammi da podcast RSS')
+    parser.add_argument('--feed-url', type=str, help='URL del feed RSS del podcast')
+    parser.add_argument('--episode', type=int, help='Numero dell\'episodio da processare')
+    parser.add_argument('--soundbites', type=str, help='Soundbites da generare: numero specifico, "all" per tutti, o lista separata da virgole (es: 1,3,5)')
+    parser.add_argument('--output-dir', type=str, help='Directory di output per i file generati')
+
+    args = parser.parse_args()
+
+    # Usa argomenti o richiedi input interattivo
+    feed_url = args.feed_url
+    episode_num = args.episode
+    soundbites_choice = args.soundbites
+    output_dir = args.output_dir if args.output_dir else os.path.join(os.getcwd(), 'output')
+
     print("Recupero episodi dal feed...")
-    episodes, podcast_info = get_podcast_episodes()
+    episodes, podcast_info = get_podcast_episodes(feed_url)
 
     if not episodes:
         print("Nessun episodio trovato nel feed.")
@@ -226,18 +243,23 @@ def main():
     for episode in episodes:
         print(f"{episode['number']}. {episode['title']}")
 
-    # Chiedi quale episodio scegliere
-    while True:
-        try:
-            choice = input(f"\nScegli il numero dell'episodio (1-{len(episodes)}): ")
-            episode_num = int(choice)
-            if 1 <= episode_num <= len(episodes):
-                break
-            print(f"Inserisci un numero tra 1 e {len(episodes)}")
-        except ValueError:
-            print("Inserisci un numero valido")
-        except KeyboardInterrupt:
-            print("\nOperazione annullata.")
+    # Chiedi quale episodio scegliere se non specificato
+    if episode_num is None:
+        while True:
+            try:
+                choice = input(f"\nScegli il numero dell'episodio (1-{len(episodes)}): ")
+                episode_num = int(choice)
+                if 1 <= episode_num <= len(episodes):
+                    break
+                print(f"Inserisci un numero tra 1 e {len(episodes)}")
+            except ValueError:
+                print("Inserisci un numero valido")
+            except KeyboardInterrupt:
+                print("\nOperazione annullata.")
+                return
+    else:
+        if not (1 <= episode_num <= len(episodes)):
+            print(f"Errore: numero episodio deve essere tra 1 e {len(episodes)}")
             return
 
     # Trova l'episodio selezionato
@@ -270,11 +292,14 @@ def main():
                 else:
                     print(f"     Testo: [Non disponibile]")
 
-        # Chiedi quale soundbite generare
+        # Chiedi quale soundbite generare se non specificato
         print("\n" + "="*60)
-        choice = input("\nVuoi generare audiogram per un soundbite? (numero, 'a' per tutti, o 'n' per uscire): ")
+        if soundbites_choice is None:
+            choice = input("\nVuoi generare audiogram per un soundbite? (numero, 'a' per tutti, o 'n' per uscire): ")
+        else:
+            choice = soundbites_choice
 
-        if choice.lower() == 'a':
+        if choice.lower() == 'a' or choice.lower() == 'all':
             # Genera tutti i soundbites
             print(f"\nGenerazione audiogram per tutti i {len(selected['soundbites'])} soundbites...")
 
@@ -291,7 +316,6 @@ def main():
                 download_image(podcast_info['image_url'], logo_path)
 
                 # Crea directory output
-                output_dir = os.path.join(os.getcwd(), 'output')
                 os.makedirs(output_dir, exist_ok=True)
 
                 # Processa ogni soundbite
@@ -354,33 +378,69 @@ def main():
 
         elif choice.lower() != 'n':
             try:
-                soundbite_num = int(choice)
-                if 1 <= soundbite_num <= len(selected['soundbites']):
-                    soundbite = selected['soundbites'][soundbite_num - 1]
+                # Supporta lista di numeri separati da virgola
+                if ',' in choice:
+                    soundbite_nums = [int(n.strip()) for n in choice.split(',')]
+                else:
+                    soundbite_nums = [int(choice)]
 
-                    print(f"\nGenerazione audiogram per: {soundbite['text']}")
+                # Valida tutti i numeri
+                for num in soundbite_nums:
+                    if not (1 <= num <= len(selected['soundbites'])):
+                        print(f"Errore: numero {num} non valido. Scegli tra 1 e {len(selected['soundbites'])}")
+                        return
 
-                    # Crea directory temporanea
-                    with tempfile.TemporaryDirectory() as temp_dir:
-                        # Scarica audio completo
-                        print("Download audio...")
-                        full_audio_path = os.path.join(temp_dir, "full_audio.mp3")
-                        download_audio(selected['audio_url'], full_audio_path)
+                # Genera audiogram per i soundbites selezionati
+                print(f"\nGenerazione audiogram per {len(soundbite_nums)} soundbite(s)...")
+
+                # Crea directory temporanea
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    # Scarica audio completo una sola volta
+                    print("Download audio...")
+                    full_audio_path = os.path.join(temp_dir, "full_audio.mp3")
+                    download_audio(selected['audio_url'], full_audio_path)
+
+                    # Scarica logo una sola volta
+                    print("Download locandina...")
+                    logo_path = os.path.join(temp_dir, "logo.png")
+                    download_image(podcast_info['image_url'], logo_path)
+
+                    # Crea directory output
+                    os.makedirs(output_dir, exist_ok=True)
+
+                    # Processa ogni soundbite selezionato
+                    for soundbite_num in soundbite_nums:
+                        soundbite = selected['soundbites'][soundbite_num - 1]
+
+                        print(f"\n{'='*60}")
+                        print(f"Soundbite {soundbite_num}: {soundbite['text']}")
+                        print(f"{'='*60}")
+
+                    # Scarica logo una sola volta
+                    print("Download locandina...")
+                    logo_path = os.path.join(temp_dir, "logo.png")
+                    download_image(podcast_info['image_url'], logo_path)
+
+                    # Crea directory output
+                    os.makedirs(output_dir, exist_ok=True)
+
+                    # Processa ogni soundbite selezionato
+                    for soundbite_num in soundbite_nums:
+                        soundbite = selected['soundbites'][soundbite_num - 1]
+
+                        print(f"\n{'='*60}")
+                        print(f"Soundbite {soundbite_num}: {soundbite['text']}")
+                        print(f"{'='*60}")
 
                         # Estrai segmento
                         print("Estrazione segmento audio...")
-                        segment_path = os.path.join(temp_dir, "segment.mp3")
+                        segment_path = os.path.join(temp_dir, f"segment_{soundbite_num}.mp3")
                         extract_audio_segment(
                             full_audio_path,
                             soundbite['start'],
                             soundbite['duration'],
                             segment_path
                         )
-
-                        # Scarica logo
-                        print("Download locandina...")
-                        logo_path = os.path.join(temp_dir, "logo.png")
-                        download_image(podcast_info['image_url'], logo_path)
 
                         # Ottieni chunk trascrizione
                         print("Elaborazione trascrizione...")
@@ -392,10 +452,6 @@ def main():
                                 soundbite['duration']
                             )
 
-                        # Crea directory output
-                        output_dir = os.path.join(os.getcwd(), 'output')
-                        os.makedirs(output_dir, exist_ok=True)
-
                         # Genera audiogram per ogni formato
                         formats_info = {
                             'vertical': 'Verticale 9:16 (Reels, Stories, Shorts, TikTok)',
@@ -404,7 +460,7 @@ def main():
                         }
 
                         for format_name, format_desc in formats_info.items():
-                            print(f"\nGenerazione audiogram {format_desc}...")
+                            print(f"Generazione audiogram {format_desc}...")
                             output_path = os.path.join(
                                 output_dir,
                                 f"ep{selected['number']}_sb{soundbite_num}_{format_name}.mp4"
@@ -416,7 +472,7 @@ def main():
                                 format_name,
                                 logo_path,
                                 podcast_info['title'],
-                                selected['title'],  # Usa il titolo dell'episodio
+                                selected['title'],
                                 transcript_chunks,
                                 float(soundbite['duration'])
                             )
@@ -424,10 +480,8 @@ def main():
                             print(f"✓ {format_name}: {output_path}")
 
                     print(f"\n{'='*60}")
-                    print(f"Audiogram generati con successo nella cartella 'output'!")
+                    print(f"Audiogram generati con successo nella cartella: {output_dir}")
                     print(f"{'='*60}")
-                else:
-                    print(f"Numero non valido. Scegli tra 1 e {len(selected['soundbites'])}")
             except ValueError:
                 print("Input non valido")
             except Exception as e:
