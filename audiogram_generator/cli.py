@@ -338,7 +338,7 @@ def main():
                                 format_name,
                                 logo_path,
                                 podcast_info['title'],
-                                soundbite['text'],
+                                selected['title'],  # Usa il titolo dell'episodio
                                 transcript_chunks,
                                 float(soundbite['duration'])
                             )
