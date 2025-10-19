@@ -319,8 +319,14 @@ def main():
                         os.makedirs(output_dir, exist_ok=True)
 
                         # Genera audiogram per ogni formato
-                        for format_name in ['reel', 'post', 'story']:
-                            print(f"\nGenerazione audiogram formato {format_name}...")
+                        formats_info = {
+                            'vertical': 'Verticale 9:16 (Reels, Stories, Shorts, TikTok)',
+                            'square': 'Quadrato 1:1 (Post Instagram, Twitter, Mastodon)',
+                            'horizontal': 'Orizzontale 16:9 (YouTube)'
+                        }
+
+                        for format_name, format_desc in formats_info.items():
+                            print(f"\nGenerazione audiogram {format_desc}...")
                             output_path = os.path.join(
                                 output_dir,
                                 f"ep{selected['number']}_sb{soundbite_num}_{format_name}.mp4"

@@ -10,11 +10,14 @@ import urllib.request
 import ssl
 
 
-# Formati Instagram
+# Formati video per social media
 FORMATS = {
-    'reel': (1080, 1920),      # 9:16 verticale
-    'post': (1080, 1080),      # 1:1 quadrato
-    'story': (1080, 1920)      # 9:16 verticale
+    # Verticale 9:16 - Instagram Reels/Stories, YouTube Shorts, TikTok, Twitter
+    'vertical': (1080, 1920),
+    # Quadrato 1:1 - Instagram Post, Twitter, Mastodon, LinkedIn
+    'square': (1080, 1080),
+    # Orizzontale 16:9 - YouTube, Twitter orizzontale
+    'horizontal': (1920, 1080)
 }
 
 # Colori Pensieri in Codice
