@@ -272,9 +272,87 @@ def main():
 
         # Chiedi quale soundbite generare
         print("\n" + "="*60)
-        choice = input("\nVuoi generare audiogram per un soundbite? (numero o 'n' per uscire): ")
+        choice = input("\nVuoi generare audiogram per un soundbite? (numero, 'a' per tutti, o 'n' per uscire): ")
 
-        if choice.lower() != 'n':
+        if choice.lower() == 'a':
+            # Genera tutti i soundbites
+            print(f"\nGenerazione audiogram per tutti i {len(selected['soundbites'])} soundbites...")
+
+            # Crea directory temporanea
+            with tempfile.TemporaryDirectory() as temp_dir:
+                # Scarica audio completo una sola volta
+                print("\nDownload audio...")
+                full_audio_path = os.path.join(temp_dir, "full_audio.mp3")
+                download_audio(selected['audio_url'], full_audio_path)
+
+                # Scarica logo una sola volta
+                print("Download locandina...")
+                logo_path = os.path.join(temp_dir, "logo.png")
+                download_image(podcast_info['image_url'], logo_path)
+
+                # Crea directory output
+                output_dir = os.path.join(os.getcwd(), 'output')
+                os.makedirs(output_dir, exist_ok=True)
+
+                # Processa ogni soundbite
+                for soundbite_num, soundbite in enumerate(selected['soundbites'], 1):
+                    print(f"\n{'='*60}")
+                    print(f"Soundbite {soundbite_num}/{len(selected['soundbites'])}: {soundbite['text']}")
+                    print(f"{'='*60}")
+
+                    # Estrai segmento
+                    print("Estrazione segmento audio...")
+                    segment_path = os.path.join(temp_dir, f"segment_{soundbite_num}.mp3")
+                    extract_audio_segment(
+                        full_audio_path,
+                        soundbite['start'],
+                        soundbite['duration'],
+                        segment_path
+                    )
+
+                    # Ottieni chunk trascrizione
+                    print("Elaborazione trascrizione...")
+                    transcript_chunks = []
+                    if selected['transcript_url']:
+                        transcript_chunks = get_transcript_chunks(
+                            selected['transcript_url'],
+                            soundbite['start'],
+                            soundbite['duration']
+                        )
+
+                    # Genera audiogram per ogni formato
+                    formats_info = {
+                        'vertical': 'Verticale 9:16',
+                        'square': 'Quadrato 1:1',
+                        'horizontal': 'Orizzontale 16:9'
+                    }
+
+                    for format_name, format_desc in formats_info.items():
+                        print(f"Generazione audiogram {format_desc}...")
+                        output_path = os.path.join(
+                            output_dir,
+                            f"ep{selected['number']}_sb{soundbite_num}_{format_name}.mp4"
+                        )
+
+                        generate_audiogram(
+                            segment_path,
+                            output_path,
+                            format_name,
+                            logo_path,
+                            podcast_info['title'],
+                            selected['title'],
+                            transcript_chunks,
+                            float(soundbite['duration'])
+                        )
+
+                        print(f"✓ {format_name}: {output_path}")
+
+                print(f"\n{'='*60}")
+                print(f"Tutti gli audiogram generati con successo nella cartella 'output'!")
+                print(f"Totale: {len(selected['soundbites'])} soundbites × 3 formati = {len(selected['soundbites']) * 3} video")
+                print(f"{'='*60}")
+
+        elif choice.lower() != 'n':
             try:
                 soundbite_num = int(choice)
                 if 1 <= soundbite_num <= len(selected['soundbites']):
