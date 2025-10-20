@@ -230,6 +230,7 @@ python3 -m unittest tests.test_config.TestConfig.test_configuration_precedence -
 
 ## TODO
 
+- [ ] Migliorare le proporzioni della grafica degli audiogrammi
 - [ ] Rendere configurabile la grafica degli audiogrammi
 - [ ] Aggiungere la possibilità di estrarre soundbite utilizzando IA
 - [ ] Aggiungere la trascrizione tramite IA se non presente nel feed
