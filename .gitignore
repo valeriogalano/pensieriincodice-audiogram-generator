@@ -40,3 +40,6 @@ Thumbs.db
 output/
 *.mp4
 *.wav
+
+# Config files
+config.*.yaml

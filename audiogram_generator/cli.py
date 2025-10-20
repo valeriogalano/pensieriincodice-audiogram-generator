@@ -315,7 +315,7 @@ def main():
         if soundbites_choice is None:
             choice = input("\nVuoi generare audiogram per un soundbite? (numero, 'a' per tutti, o 'n' per uscire): ")
         else:
-            choice = soundbites_choice
+            choice = str(soundbites_choice)
 
         if choice.lower() == 'a' or choice.lower() == 'all':
             # Genera tutti i soundbites
