@@ -195,7 +195,7 @@ Ogni video generato include:
 - [ ] Rendere configurabile la grafica degli audiogrammi
 - [ ] Aggiungere la possibilità di estrarre soundbite utilizzando IA
 - [ ] Aggiungere la trascrizione tramite IA se non presente nel feed
-- [ ] Permettere la configurazione per più podcast tramite file di configurazione
+- [x] Permettere la configurazione per più podcast tramite file di configurazione
 - [ ] Implementare batteria di test per verificare che i meccanismi di configurazione funzionino correttamente 
 
 ## Licenza
