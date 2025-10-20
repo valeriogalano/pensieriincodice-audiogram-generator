@@ -1,35 +1,29 @@
 """
-Test per il modulo generator
+Test per i moduli del generatore di audiogrammi
 """
 import unittest
-from pathlib import Path
-from audiogram_generator.generator import AudiogramGenerator
+from audiogram_generator import cli
 
 
-class TestAudiogramGenerator(unittest.TestCase):
-    """Test per AudiogramGenerator"""
+class TestCliModule(unittest.TestCase):
+    """Test per il modulo CLI"""
 
-    def setUp(self):
-        """Setup per i test"""
-        self.generator = AudiogramGenerator()
+    def test_parse_srt_time(self):
+        """Test conversione timestamp SRT in secondi"""
+        # Test formato: 00:00:10,500 -> 10.5 secondi
+        self.assertEqual(cli.parse_srt_time("00:00:10,500"), 10.5)
+        self.assertEqual(cli.parse_srt_time("00:01:00,000"), 60.0)
+        self.assertEqual(cli.parse_srt_time("01:00:00,000"), 3600.0)
+        self.assertEqual(cli.parse_srt_time("00:00:00,500"), 0.5)
+        self.assertEqual(cli.parse_srt_time("00:05:30,250"), 330.25)
 
-    def test_initialization(self):
-        """Test inizializzazione del generatore"""
-        self.assertIsNotNone(self.generator)
-        self.assertIsNotNone(self.generator.video_generator)
+    def test_parse_srt_time_edge_cases(self):
+        """Test casi limite per la conversione timestamp SRT"""
+        # Timestamp a zero
+        self.assertEqual(cli.parse_srt_time("00:00:00,000"), 0.0)
 
-    def test_custom_parameters(self):
-        """Test inizializzazione con parametri personalizzati"""
-        generator = AudiogramGenerator(
-            width=1280,
-            height=720,
-            fps=24,
-            background_color=(0, 0, 0),
-            waveform_color=(255, 255, 255)
-        )
-        self.assertEqual(generator.video_generator.width, 1280)
-        self.assertEqual(generator.video_generator.height, 720)
-        self.assertEqual(generator.video_generator.fps, 24)
+        # Timestamp con millisecondi
+        self.assertEqual(cli.parse_srt_time("00:00:01,123"), 1.123)
 
 
 if __name__ == "__main__":
