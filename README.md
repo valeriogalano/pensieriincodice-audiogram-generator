@@ -141,7 +141,7 @@ python3 -m audiogram_generator --config config.yaml --episode 150
 
 1. Copia il file di esempio:
 ```bash
-cp config.example.yaml config.yaml
+cp config.yaml.example config.yaml
 ```
 
 2. Modifica il file `config.yaml` con i tuoi parametri:
@@ -151,12 +151,54 @@ feed_url: https://pensieriincodice.it/podcast/index.xml
 output_dir: ./output
 episode: 142
 soundbites: "all"
+
+# Personalizza i colori (opzionale)
+colors:
+  primary: [242, 101, 34]      # Arancione
+  background: [235, 213, 197]  # Beige
+  text: [255, 255, 255]        # Bianco
+  transcript_bg: [0, 0, 0]     # Nero
+
+# Configura i formati video (opzionale)
+formats:
+  vertical:
+    width: 1080
+    height: 1920
+    enabled: true
+  square:
+    enabled: true
+  horizontal:
+    enabled: false  # Disabilita formato orizzontale
 ```
 
 3. Usa il file di configurazione:
 ```bash
 python3 -m audiogram_generator --config config.yaml
 ```
+
+#### Personalizzazione colori e formati
+
+Il file di configurazione permette di personalizzare completamente l'aspetto degli audiogrammi:
+
+**Colori personalizzabili:**
+- `primary`: Colore per header, footer e barre waveform (default: arancione)
+- `background`: Colore di sfondo dell'area centrale (default: beige)
+- `text`: Colore del testo (default: bianco)
+- `transcript_bg`: Colore di sfondo della trascrizione (default: nero)
+
+I colori sono specificati come liste RGB `[R, G, B]` con valori 0-255.
+
+**Formati video configurabili:**
+
+Ogni formato può essere:
+- Personalizzato nelle dimensioni (`width`, `height`)
+- Abilitato o disabilitato (`enabled: true/false`)
+- Dotato di una descrizione personalizzata
+
+Formati disponibili:
+- `vertical`: 9:16 per Reels, Stories, Shorts, TikTok
+- `square`: 1:1 per Post Instagram, Twitter, Mastodon
+- `horizontal`: 16:9 per YouTube
 
 ### Output
 
@@ -231,7 +273,7 @@ python3 -m unittest tests.test_config.TestConfig.test_configuration_precedence -
 ## TODO
 
 - [ ] Migliorare le proporzioni della grafica degli audiogrammi
-- [ ] Rendere configurabile la grafica degli audiogrammi
+- [x] Rendere configurabile la grafica degli audiogrammi
 - [ ] Aggiungere la possibilità di estrarre soundbite utilizzando IA
 - [ ] Aggiungere la trascrizione tramite IA se non presente nel feed
 - [x] Permettere la configurazione per più podcast tramite file di configurazione

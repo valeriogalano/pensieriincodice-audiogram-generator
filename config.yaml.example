@@ -23,3 +23,54 @@ episode: null
 # Esempio: soundbites: "all"
 # Esempio: soundbites: "1,3"
 soundbites: null
+
+# Configurazione colori (opzionale)
+# I colori sono specificati come liste RGB [R, G, B] con valori 0-255
+colors:
+  # Colore principale per header, footer e barre waveform
+  primary: [242, 101, 34]      # Arancione
+  # Colore di sfondo dell'area centrale
+  background: [235, 213, 197]  # Beige
+  # Colore del testo
+  text: [255, 255, 255]        # Bianco
+  # Colore di sfondo della trascrizione
+  transcript_bg: [0, 0, 0]     # Nero
+
+# Configurazione formati video (opzionale)
+# Puoi personalizzare dimensioni, abilitare/disabilitare formati specifici
+formats:
+  vertical:
+    width: 1080
+    height: 1920
+    enabled: true
+    description: "Verticale 9:16 (Reels, Stories, Shorts, TikTok)"
+  square:
+    width: 1080
+    height: 1080
+    enabled: true
+    description: "Quadrato 1:1 (Post Instagram, Twitter, Mastodon)"
+  horizontal:
+    width: 1920
+    height: 1080
+    enabled: true
+    description: "Orizzontale 16:9 (YouTube)"
+
+# Esempi di personalizzazione:
+#
+# 1. Disabilitare un formato specifico:
+#    formats:
+#      horizontal:
+#        enabled: false
+#
+# 2. Modificare le dimensioni di un formato:
+#    formats:
+#      vertical:
+#        width: 720
+#        height: 1280
+#
+# 3. Personalizzare i colori per il tuo brand:
+#    colors:
+#      primary: [33, 150, 243]     # Blu
+#      background: [255, 255, 255]  # Bianco
+#      text: [0, 0, 0]              # Nero
+#      transcript_bg: [33, 33, 33]  # Grigio scuro

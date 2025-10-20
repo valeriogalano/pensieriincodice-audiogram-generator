@@ -77,7 +77,7 @@ def get_waveform_data(audio_path, fps=24):
 
 
 def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, episode_title,
-                           waveform_data, current_time, transcript_chunks, audio_duration):
+                           waveform_data, current_time, transcript_chunks, audio_duration, colors=None):
     """
     Crea un singolo frame dell'audiogram
 
@@ -90,14 +90,32 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
         current_time: Tempo corrente in secondi
         transcript_chunks: Lista di chunk di trascrizione con timing
         audio_duration: Durata totale dell'audio
+        colors: Dizionario con i colori personalizzati (opzionale)
     """
+    # Usa colori di default o personalizzati
+    if colors is None:
+        colors = {
+            'primary': COLOR_ORANGE,
+            'background': COLOR_BEIGE,
+            'text': COLOR_WHITE,
+            'transcript_bg': COLOR_BLACK
+        }
+    else:
+        # Converti liste in tuple se necessario
+        colors = {
+            'primary': tuple(colors.get('primary', COLOR_ORANGE)),
+            'background': tuple(colors.get('background', COLOR_BEIGE)),
+            'text': tuple(colors.get('text', COLOR_WHITE)),
+            'transcript_bg': tuple(colors.get('transcript_bg', COLOR_BLACK))
+        }
+
     # Crea immagine di base
-    img = Image.new('RGB', (width, height), COLOR_BEIGE)
+    img = Image.new('RGB', (width, height), colors['background'])
     draw = ImageDraw.Draw(img)
 
-    # Header arancione (15% altezza)
+    # Header (15% altezza)
     header_height = int(height * 0.15)
-    draw.rectangle([(0, 0), (width, header_height)], fill=COLOR_ORANGE)
+    draw.rectangle([(0, 0), (width, header_height)], fill=colors['primary'])
 
     # Testo "ASCOLTA" nel header
     try:
@@ -110,7 +128,7 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
     text_width = bbox[2] - bbox[0]
     text_x = (width - text_width) // 2
     text_y = (header_height - (bbox[3] - bbox[1])) // 2
-    draw.text((text_x, text_y), header_text, fill=COLOR_WHITE, font=font_header)
+    draw.text((text_x, text_y), header_text, fill=colors['text'], font=font_header)
 
     # Area centrale (60% altezza)
     central_top = header_height
@@ -167,12 +185,12 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
             y_bottom = y_center + bar_height // 2
 
             # Disegna la bar
-            draw.rectangle([(x, y_top), (x + bar_width, y_bottom)], fill=COLOR_ORANGE)
+            draw.rectangle([(x, y_top), (x + bar_width, y_bottom)], fill=colors['primary'])
 
     # Logo podcast al centro (sopra la waveform)
     if os.path.exists(podcast_logo_path):
         logo = Image.open(podcast_logo_path)
-        logo_size = int(min(width, central_height) * 0.4)
+        logo_size = int(min(width, central_height) * 0.8)
         logo = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
 
         # Posizione centrata
@@ -180,10 +198,10 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
         logo_y = central_top + (central_height - logo_size) // 2
         img.paste(logo, (logo_x, logo_y), logo if logo.mode == 'RGBA' else None)
 
-    # Footer arancione (25% altezza)
+    # Footer (25% altezza)
     footer_top = central_bottom
     footer_height = height - footer_top
-    draw.rectangle([(0, footer_top), (width, height)], fill=COLOR_ORANGE)
+    draw.rectangle([(0, footer_top), (width, height)], fill=colors['primary'])
 
     # Titolo podcast nel footer
     try:
@@ -198,7 +216,7 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
     title_width = bbox[2] - bbox[0]
     title_x = (width - title_width) // 2
     title_y = footer_top + int(footer_height * 0.10)
-    draw.text((title_x, title_y), podcast_title, fill=COLOR_WHITE, font=font_title)
+    draw.text((title_x, title_y), podcast_title, fill=colors['text'], font=font_title)
 
     # Episode title (wrapped)
     episode_y = title_y + int(footer_height * 0.20)
@@ -221,12 +239,12 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
             line_width = bbox[2] - bbox[0]
             line_x = (width - line_width) // 2
             line_y = episode_y + i * int(footer_height * 0.12)
-            draw.text((line_x, line_y), line, fill=COLOR_WHITE, font=font_episode)
+            draw.text((line_x, line_y), line, fill=colors['text'], font=font_episode)
     else:
         bbox = draw.textbbox((0, 0), episode_title, font=font_episode)
         ep_width = bbox[2] - bbox[0]
         ep_x = (width - ep_width) // 2
-        draw.text((ep_x, episode_y), episode_title, fill=COLOR_WHITE, font=font_episode)
+        draw.text((ep_x, episode_y), episode_title, fill=colors['text'], font=font_episode)
 
     # Trascrizione in tempo reale (sopra il footer, nell'area centrale bassa)
     if transcript_chunks:
@@ -272,18 +290,20 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
 
                 # Background
                 padding = 10
+                bg_color = colors['transcript_bg'] + (180,) if len(colors['transcript_bg']) == 3 else colors['transcript_bg']
                 draw.rectangle([
                     (line_x - padding, line_y - padding),
                     (line_x + line_width + padding, line_y + line_height + padding)
-                ], fill=(0, 0, 0, 180))
+                ], fill=bg_color)
 
-                draw.text((line_x, line_y), line, fill=COLOR_WHITE, font=font_transcript)
+                draw.text((line_x, line_y), line, fill=colors['text'], font=font_transcript)
 
     return np.array(img)
 
 
 def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
-                      podcast_title, episode_title, transcript_chunks, duration):
+                      podcast_title, episode_title, transcript_chunks, duration,
+                      formats=None, colors=None):
     """
     Genera un video audiogram completo
 
@@ -296,8 +316,17 @@ def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
         episode_title: Titolo dell'episodio
         transcript_chunks: Lista di chunk di trascrizione con timing
         duration: Durata del video
+        formats: Dizionario con i formati personalizzati (opzionale)
+        colors: Dizionario con i colori personalizzati (opzionale)
     """
-    width, height = FORMATS[format_name]
+    # Usa formati personalizzati o di default
+    if formats is None or format_name not in formats:
+        width, height = FORMATS[format_name]
+    else:
+        format_config = formats[format_name]
+        width = format_config.get('width', FORMATS[format_name][0])
+        height = format_config.get('height', FORMATS[format_name][1])
+
     fps = 24  # Riduci da 30 a 24 fps per velocizzare
 
     print(f"  - Estrazione waveform...")
@@ -324,7 +353,8 @@ def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
             waveform_data,
             t,
             transcript_chunks,
-            duration
+            duration,
+            colors
         )
 
     # Crea video clip

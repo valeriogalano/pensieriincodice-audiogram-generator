@@ -14,6 +14,32 @@ class Config:
         'output_dir': './output',
         'episode': None,
         'soundbites': None,
+        'colors': {
+            'primary': [242, 101, 34],      # Arancione (header, footer, bars)
+            'background': [235, 213, 197],  # Beige (sfondo centrale)
+            'text': [255, 255, 255],        # Bianco (testo)
+            'transcript_bg': [0, 0, 0]      # Nero (sfondo trascrizione)
+        },
+        'formats': {
+            'vertical': {
+                'width': 1080,
+                'height': 1920,
+                'enabled': True,
+                'description': 'Verticale 9:16 (Reels, Stories, Shorts, TikTok)'
+            },
+            'square': {
+                'width': 1080,
+                'height': 1080,
+                'enabled': True,
+                'description': 'Quadrato 1:1 (Post Instagram, Twitter, Mastodon)'
+            },
+            'horizontal': {
+                'width': 1920,
+                'height': 1080,
+                'enabled': True,
+                'description': 'Orizzontale 16:9 (YouTube)'
+            }
+        }
     }
 
     def __init__(self, config_file: Optional[str] = None):
@@ -23,7 +49,9 @@ class Config:
         Args:
             config_file: Path al file di configurazione YAML (opzionale)
         """
-        self.config = self.DEFAULT_CONFIG.copy()
+        # Deep copy per evitare modifiche ai default
+        import copy
+        self.config = copy.deepcopy(self.DEFAULT_CONFIG)
 
         if config_file and os.path.exists(config_file):
             self.load_from_file(config_file)
@@ -39,9 +67,30 @@ class Config:
             with open(config_file, 'r', encoding='utf-8') as f:
                 file_config = yaml.safe_load(f)
                 if file_config:
-                    self.config.update(file_config)
+                    # Merge profondo per colors e formats
+                    for key, value in file_config.items():
+                        if key in ['colors', 'formats'] and isinstance(value, dict):
+                            if key not in self.config:
+                                self.config[key] = {}
+                            self._deep_merge(self.config[key], value)
+                        else:
+                            self.config[key] = value
         except Exception as e:
             raise Exception(f"Errore nel caricamento del file di configurazione: {e}")
+
+    def _deep_merge(self, base: dict, update: dict) -> None:
+        """
+        Merge profondo di dizionari nested
+
+        Args:
+            base: Dizionario base da aggiornare
+            update: Dizionario con gli aggiornamenti
+        """
+        for key, value in update.items():
+            if key in base and isinstance(base[key], dict) and isinstance(value, dict):
+                self._deep_merge(base[key], value)
+            else:
+                base[key] = value
 
     def update_from_args(self, args: Dict[str, Any]) -> None:
         """

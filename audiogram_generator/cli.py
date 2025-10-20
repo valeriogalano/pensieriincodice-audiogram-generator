@@ -237,6 +237,10 @@ def main():
     soundbites_choice = config.get('soundbites')
     output_dir = config.get('output_dir', os.path.join(os.getcwd(), 'output'))
 
+    # Carica configurazione colori e formati
+    colors = config.get('colors')
+    formats_config = config.get('formats')
+
     # Verifica che feed_url sia specificato
     if feed_url is None:
         print("Errore: feed_url non specificato. Usa --feed-url oppure specifica il parametro nel file di configurazione.")
@@ -362,12 +366,11 @@ def main():
                             soundbite['duration']
                         )
 
-                    # Genera audiogram per ogni formato
-                    formats_info = {
-                        'vertical': 'Verticale 9:16',
-                        'square': 'Quadrato 1:1',
-                        'horizontal': 'Orizzontale 16:9'
-                    }
+                    # Genera audiogram per ogni formato abilitato
+                    formats_info = {}
+                    for fmt_name, fmt_config in formats_config.items():
+                        if fmt_config.get('enabled', True):
+                            formats_info[fmt_name] = fmt_config.get('description', fmt_name)
 
                     for format_name, format_desc in formats_info.items():
                         print(f"Generazione audiogram {format_desc}...")
@@ -384,14 +387,16 @@ def main():
                             podcast_info['title'],
                             selected['title'],
                             transcript_chunks,
-                            float(soundbite['duration'])
+                            float(soundbite['duration']),
+                            formats_config,
+                            colors
                         )
 
                         print(f"✓ {format_name}: {output_path}")
 
                 print(f"\n{'='*60}")
                 print(f"Tutti gli audiogram generati con successo nella cartella 'output'!")
-                print(f"Totale: {len(selected['soundbites'])} soundbites × 3 formati = {len(selected['soundbites']) * 3} video")
+                print(f"Totale: {len(selected['soundbites'])} soundbites × {len(formats_info)} formati = {len(selected['soundbites']) * len(formats_info)} video")
                 print(f"{'='*60}")
 
         elif choice.lower() != 'n':
@@ -470,12 +475,11 @@ def main():
                                 soundbite['duration']
                             )
 
-                        # Genera audiogram per ogni formato
-                        formats_info = {
-                            'vertical': 'Verticale 9:16 (Reels, Stories, Shorts, TikTok)',
-                            'square': 'Quadrato 1:1 (Post Instagram, Twitter, Mastodon)',
-                            'horizontal': 'Orizzontale 16:9 (YouTube)'
-                        }
+                        # Genera audiogram per ogni formato abilitato
+                        formats_info = {}
+                        for fmt_name, fmt_config in formats_config.items():
+                            if fmt_config.get('enabled', True):
+                                formats_info[fmt_name] = fmt_config.get('description', fmt_name)
 
                         for format_name, format_desc in formats_info.items():
                             print(f"Generazione audiogram {format_desc}...")
@@ -492,7 +496,9 @@ def main():
                                 podcast_info['title'],
                                 selected['title'],
                                 transcript_chunks,
-                                float(soundbite['duration'])
+                                float(soundbite['duration']),
+                                formats_config,
+                                colors
                             )
 
                             print(f"✓ {format_name}: {output_path}")

@@ -271,6 +271,172 @@ class TestConfig(unittest.TestCase):
         self.assertIsNone(config.get('feed_url'))
         self.assertIsNone(config.get('new_key'))
 
+    def test_default_colors_configuration(self):
+        """Test che i colori di default siano correttamente impostati"""
+        config = Config()
+        colors = config.get('colors')
+
+        self.assertIsNotNone(colors)
+        self.assertEqual(colors['primary'], [242, 101, 34])
+        self.assertEqual(colors['background'], [235, 213, 197])
+        self.assertEqual(colors['text'], [255, 255, 255])
+        self.assertEqual(colors['transcript_bg'], [0, 0, 0])
+
+    def test_default_formats_configuration(self):
+        """Test che i formati di default siano correttamente impostati"""
+        config = Config()
+        formats = config.get('formats')
+
+        self.assertIsNotNone(formats)
+        self.assertIn('vertical', formats)
+        self.assertIn('square', formats)
+        self.assertIn('horizontal', formats)
+
+        # Verifica formato vertical
+        self.assertEqual(formats['vertical']['width'], 1080)
+        self.assertEqual(formats['vertical']['height'], 1920)
+        self.assertTrue(formats['vertical']['enabled'])
+
+        # Verifica formato square
+        self.assertEqual(formats['square']['width'], 1080)
+        self.assertEqual(formats['square']['height'], 1080)
+        self.assertTrue(formats['square']['enabled'])
+
+        # Verifica formato horizontal
+        self.assertEqual(formats['horizontal']['width'], 1920)
+        self.assertEqual(formats['horizontal']['height'], 1080)
+        self.assertTrue(formats['horizontal']['enabled'])
+
+    def test_custom_colors_from_yaml(self):
+        """Test caricamento colori personalizzati da YAML"""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml_content = {
+                'feed_url': 'https://example.com/feed.xml',
+                'colors': {
+                    'primary': [33, 150, 243],      # Blu
+                    'background': [255, 255, 255],  # Bianco
+                }
+            }
+            yaml.dump(yaml_content, f)
+            temp_file = f.name
+
+        try:
+            config = Config(config_file=temp_file)
+            colors = config.get('colors')
+
+            # Valori personalizzati
+            self.assertEqual(colors['primary'], [33, 150, 243])
+            self.assertEqual(colors['background'], [255, 255, 255])
+
+            # Valori di default non sovrascritti
+            self.assertEqual(colors['text'], [255, 255, 255])
+            self.assertEqual(colors['transcript_bg'], [0, 0, 0])
+        finally:
+            os.unlink(temp_file)
+
+    def test_custom_formats_from_yaml(self):
+        """Test caricamento formati personalizzati da YAML"""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml_content = {
+                'feed_url': 'https://example.com/feed.xml',
+                'formats': {
+                    'vertical': {
+                        'width': 720,
+                        'height': 1280,
+                        'enabled': True
+                    },
+                    'horizontal': {
+                        'enabled': False
+                    }
+                }
+            }
+            yaml.dump(yaml_content, f)
+            temp_file = f.name
+
+        try:
+            config = Config(config_file=temp_file)
+            formats = config.get('formats')
+
+            # Formato vertical personalizzato
+            self.assertEqual(formats['vertical']['width'], 720)
+            self.assertEqual(formats['vertical']['height'], 1280)
+            self.assertTrue(formats['vertical']['enabled'])
+
+            # Formato horizontal disabilitato
+            self.assertFalse(formats['horizontal']['enabled'])
+
+            # Formato square invariato (usa default)
+            self.assertEqual(formats['square']['width'], 1080)
+            self.assertEqual(formats['square']['height'], 1080)
+            self.assertTrue(formats['square']['enabled'])
+        finally:
+            os.unlink(temp_file)
+
+    def test_disable_format_via_yaml(self):
+        """Test disabilitazione di un formato specifico tramite YAML"""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml_content = {
+                'feed_url': 'https://example.com/feed.xml',
+                'formats': {
+                    'horizontal': {
+                        'enabled': False
+                    },
+                    'square': {
+                        'enabled': False
+                    }
+                }
+            }
+            yaml.dump(yaml_content, f)
+            temp_file = f.name
+
+        try:
+            config = Config(config_file=temp_file)
+            formats = config.get('formats')
+
+            # Formati disabilitati
+            self.assertFalse(formats['horizontal']['enabled'])
+            self.assertFalse(formats['square']['enabled'])
+
+            # Formato vertical ancora abilitato
+            self.assertTrue(formats['vertical']['enabled'])
+        finally:
+            os.unlink(temp_file)
+
+    def test_deep_merge_colors_and_formats(self):
+        """Test del merge profondo per strutture nested (colors e formats)"""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml_content = {
+                'feed_url': 'https://example.com/feed.xml',
+                'colors': {
+                    'primary': [100, 200, 50]  # Solo primary personalizzato
+                },
+                'formats': {
+                    'vertical': {
+                        'width': 720  # Solo width personalizzato
+                    }
+                }
+            }
+            yaml.dump(yaml_content, f)
+            temp_file = f.name
+
+        try:
+            config = Config(config_file=temp_file)
+
+            # Verifica merge profondo per colors
+            colors = config.get('colors')
+            self.assertEqual(colors['primary'], [100, 200, 50])  # Personalizzato
+            self.assertEqual(colors['background'], [235, 213, 197])  # Default
+            self.assertEqual(colors['text'], [255, 255, 255])  # Default
+            self.assertEqual(colors['transcript_bg'], [0, 0, 0])  # Default
+
+            # Verifica merge profondo per formats
+            formats = config.get('formats')
+            self.assertEqual(formats['vertical']['width'], 720)  # Personalizzato
+            self.assertEqual(formats['vertical']['height'], 1920)  # Default
+            self.assertTrue(formats['vertical']['enabled'])  # Default
+        finally:
+            os.unlink(temp_file)
+
 
 if __name__ == "__main__":
     unittest.main()
