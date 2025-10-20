@@ -156,6 +156,13 @@ Ogni video generato include:
   - Titolo del podcast ("Pensieri in codice")
   - Titolo dell'episodio/soundbite
 
+## TODO
+
+- [ ] Rendere configurabile la grafica degli audiogrammi
+- [ ] Aggiungere la possibilità di estrarre soundbite utilizzando IA
+- [ ] Aggiungere la trascrizione tramite IA se non presente nel feed
+- [ ] Permettere la configurazione per più podcast tramite file di configurazione
+
 ## Licenza
 
 Vedi il file [LICENSE](LICENSE) per i dettagli.
