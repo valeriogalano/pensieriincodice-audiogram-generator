@@ -11,6 +11,7 @@ import tempfile
 import argparse
 from .audio_utils import download_audio, extract_audio_segment
 from .video_generator import generate_audiogram, download_image
+from .config import Config
 
 
 def get_podcast_episodes(feed_url=None):
@@ -211,6 +212,7 @@ def main():
     """Funzione principale CLI"""
     # Parsing argomenti
     parser = argparse.ArgumentParser(description='Generatore di audiogrammi da podcast RSS')
+    parser.add_argument('--config', type=str, help='Path al file di configurazione YAML')
     parser.add_argument('--feed-url', type=str, help='URL del feed RSS del podcast')
     parser.add_argument('--episode', type=int, help='Numero dell\'episodio da processare')
     parser.add_argument('--soundbites', type=str, help='Soundbites da generare: numero specifico, "all" per tutti, o lista separata da virgole (es: 1,3,5)')
@@ -218,11 +220,27 @@ def main():
 
     args = parser.parse_args()
 
+    # Carica configurazione
+    config = Config(config_file=args.config)
+
+    # Aggiorna configurazione con argomenti CLI (hanno precedenza)
+    config.update_from_args({
+        'feed_url': args.feed_url,
+        'episode': args.episode,
+        'soundbites': args.soundbites,
+        'output_dir': args.output_dir
+    })
+
     # Usa argomenti o richiedi input interattivo
-    feed_url = args.feed_url
-    episode_num = args.episode
-    soundbites_choice = args.soundbites
-    output_dir = args.output_dir if args.output_dir else os.path.join(os.getcwd(), 'output')
+    feed_url = config.get('feed_url')
+    episode_num = config.get('episode')
+    soundbites_choice = config.get('soundbites')
+    output_dir = config.get('output_dir', os.path.join(os.getcwd(), 'output'))
+
+    # Verifica che feed_url sia specificato
+    if feed_url is None:
+        print("Errore: feed_url non specificato. Usa --feed-url oppure specifica il parametro nel file di configurazione.")
+        return
 
     print("Recupero episodi dal feed...")
     episodes, podcast_info = get_podcast_episodes(feed_url)

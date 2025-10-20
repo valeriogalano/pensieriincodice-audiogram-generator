@@ -1,0 +1,25 @@
+# File di configurazione di esempio per Audiogram Generator
+# Copia questo file come 'config.yaml' e personalizzalo secondo le tue esigenze
+
+# URL del feed RSS del podcast (OBBLIGATORIO)
+# Esempio: https://pensieriincodice.it/podcast/index.xml
+feed_url: https://pensieriincodice.it/podcast/index.xml
+
+# Directory di output per i file generati
+# Default: ./output
+output_dir: ./output
+
+# Numero dell'episodio da processare (opzionale)
+# Se non specificato, verrà richiesto in modalità interattiva
+# Esempio: episode: 142
+episode: null
+
+# Soundbites da generare (opzionale)
+# Valori possibili:
+#   - Numero specifico: 1, 2, 3, ecc.
+#   - Lista separata da virgola: "1,3,5"
+#   - Tutti i soundbites: "all" o "a"
+# Se non specificato, verrà richiesto in modalità interattiva
+# Esempio: soundbites: "all"
+# Esempio: soundbites: "1,3"
+soundbites: null

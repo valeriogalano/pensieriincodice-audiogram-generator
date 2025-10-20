@@ -99,13 +99,17 @@ python3 -m audiogram_generator [opzioni]
 
 **Opzioni disponibili:**
 
-- `--feed-url URL` - URL del feed RSS del podcast (default: feed di Pensieri in Codice)
+- `--config PATH` - Path al file di configurazione YAML
+- `--feed-url URL` - URL del feed RSS del podcast (obbligatorio se non specificato nel file di configurazione)
 - `--episode N` - Numero dell'episodio da processare (1-N)
 - `--soundbites SCELTA` - Soundbites da generare:
   - Numero specifico: `1`, `2`, `3`, ecc.
   - Lista separata da virgola: `1,3,5`
   - Tutti i soundbites: `all` o `a`
 - `--output-dir PATH` - Directory di output per i video generati (default: `./output`)
+
+**Note sulla precedenza:**
+Gli argomenti da riga di comando hanno precedenza sul file di configurazione, che a sua volta ha precedenza sui valori di default.
 
 **Esempi:**
 
@@ -121,6 +125,35 @@ python3 -m audiogram_generator --episode 50 --soundbites 2 --output-dir ~/videos
 
 # Usa un feed RSS personalizzato
 python3 -m audiogram_generator --feed-url https://esempio.com/feed.xml --episode 5 --soundbites all
+
+# Usa un file di configurazione
+python3 -m audiogram_generator --config config.yaml
+
+# Usa un file di configurazione e sovrascrivi alcuni parametri
+python3 -m audiogram_generator --config config.yaml --episode 150
+```
+
+### File di configurazione
+
+È possibile creare un file di configurazione YAML per definire i parametri in modo permanente:
+
+1. Copia il file di esempio:
+```bash
+cp config.example.yaml config.yaml
+```
+
+2. Modifica il file `config.yaml` con i tuoi parametri:
+```yaml
+# feed_url è OBBLIGATORIO
+feed_url: https://pensieriincodice.it/podcast/index.xml
+output_dir: ./output
+episode: 142
+soundbites: "all"
+```
+
+3. Usa il file di configurazione:
+```bash
+python3 -m audiogram_generator --config config.yaml
 ```
 
 ### Output
@@ -143,6 +176,7 @@ Esempio:
 - **pydub** (≥0.25.1) - Elaborazione e manipolazione audio
 - **numpy** (≥1.24.0) - Calcoli numerici per forme d'onda
 - **requests** (≥2.31.0) - Download risorse remote
+- **pyyaml** (≥6.0) - Parsing file di configurazione YAML
 
 ## Struttura audiogram
 
