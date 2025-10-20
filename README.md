@@ -29,11 +29,13 @@ pensieriincodice-audiogram-generator/
 │   ├── __init__.py
 │   ├── __main__.py            # Entry point
 │   ├── cli.py                 # Interfaccia a riga di comando
+│   ├── config.py              # Gestione configurazione
 │   ├── audio_utils.py         # Download ed estrazione audio
 │   └── video_generator.py     # Generazione video audiogrammi
 ├── tests/                      # Test
 │   ├── __init__.py
-│   └── test_generator.py
+│   ├── test_config.py         # Test modulo configurazione
+│   └── test_generator.py      # Test generatore audiogrammi
 ├── output/                     # Directory di output video generati
 ├── requirements.txt            # Dipendenze Python
 └── setup.py                    # Setup del progetto
@@ -190,13 +192,49 @@ Ogni video generato include:
   - Titolo del podcast ("Pensieri in codice")
   - Titolo dell'episodio/soundbite
 
+## Test
+
+Il progetto include una suite di test per verificare il corretto funzionamento dei componenti.
+
+### Eseguire i test
+
+Per eseguire tutti i test:
+```bash
+python3 -m unittest discover tests
+```
+
+Per eseguire i test di un modulo specifico:
+```bash
+# Test del modulo di configurazione
+python3 -m unittest tests.test_config -v
+
+# Test del generatore di audiogrammi
+python3 -m unittest tests.test_generator -v
+```
+
+Per eseguire un singolo test:
+```bash
+python3 -m unittest tests.test_config.TestConfig.test_configuration_precedence -v
+```
+
+### Test disponibili
+
+- **test_config.py** - 14 test per il modulo di configurazione:
+  - Caricamento da file YAML
+  - Override da argomenti CLI
+  - Gestione valori di default
+  - Precedenza configurazione (default < file < CLI)
+  - Gestione errori e casi limite
+
+- **test_generator.py** - Test per il generatore di audiogrammi
+
 ## TODO
 
 - [ ] Rendere configurabile la grafica degli audiogrammi
 - [ ] Aggiungere la possibilità di estrarre soundbite utilizzando IA
 - [ ] Aggiungere la trascrizione tramite IA se non presente nel feed
 - [x] Permettere la configurazione per più podcast tramite file di configurazione
-- [ ] Implementare batteria di test per verificare che i meccanismi di configurazione funzionino correttamente 
+- [x] Implementare batteria di test per verificare che i meccanismi di configurazione funzionino correttamente 
 
 ## Licenza
 
