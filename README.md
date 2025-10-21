@@ -202,15 +202,34 @@ Formati disponibili:
 
 ### Output
 
-I video generati vengono salvati nella directory specificata (default: `output/`) con naming:
+I video e i file caption generati vengono salvati nella directory specificata (default: `output/`) con naming:
+
+**Video:**
 ```
 ep{numero_episodio}_sb{numero_soundbite}_{formato}.mp4
 ```
 
-Esempio:
-- `ep142_sb1_vertical.mp4` - Per Reels, Stories, Shorts, TikTok
-- `ep142_sb1_square.mp4` - Per post Instagram, Twitter, Mastodon
-- `ep142_sb1_horizontal.mp4` - Per YouTube
+**Caption per social media:**
+```
+ep{numero_episodio}_sb{numero_soundbite}_caption.md
+```
+
+Esempio per il soundbite 1 dell'episodio 142:
+- `ep142_sb1_vertical.mp4` - Video verticale per Reels, Stories, Shorts, TikTok
+- `ep142_sb1_square.mp4` - Video quadrato per post Instagram, Twitter, Mastodon
+- `ep142_sb1_horizontal.mp4` - Video orizzontale per YouTube
+- `ep142_sb1_caption.md` - File con caption pronta per il post social
+
+#### File caption
+
+Ogni file `_caption.md` contiene:
+- Titolo e numero dell'episodio
+- Titolo del soundbite
+- Testo completo della trascrizione
+- Link all'episodio completo
+- Hashtag suggeriti
+
+Puoi copiare il contenuto direttamente per creare i tuoi post sui social media.
 
 ## Dipendenze principali
 

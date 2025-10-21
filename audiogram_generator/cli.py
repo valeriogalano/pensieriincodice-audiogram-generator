@@ -205,6 +205,39 @@ def get_transcript_chunks(transcript_url, start_time, duration):
         return []
 
 
+def generate_caption_file(output_path, episode_number, episode_title, episode_link,
+                          soundbite_title, transcript_text):
+    """
+    Genera un file .md con la caption per il post social
+
+    Args:
+        output_path: Path del file .md da creare
+        episode_number: Numero dell'episodio
+        episode_title: Titolo dell'episodio
+        episode_link: Link all'episodio
+        soundbite_title: Titolo del soundbite
+        transcript_text: Testo della trascrizione
+    """
+    caption = f"""# Caption per Social Media
+
+## Episodio {episode_number}: {episode_title}
+
+{soundbite_title}
+
+{transcript_text}
+
+🎧 Ascolta l'episodio completo: {episode_link}
+
+---
+
+**Hashtags suggeriti:**
+#podcast #tech #sviluppo #programmazione #coding
+"""
+
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(caption)
+
+
 def main():
     """Funzione principale CLI"""
     # Parsing argomenti
@@ -366,12 +399,21 @@ def main():
                     # Ottieni chunk trascrizione
                     print("Elaborazione trascrizione...")
                     transcript_chunks = []
+                    transcript_text = ""
                     if selected['transcript_url']:
                         transcript_chunks = get_transcript_chunks(
                             selected['transcript_url'],
                             soundbite['start'],
                             soundbite['duration']
                         )
+                        # Estrai testo completo per caption
+                        transcript_text = get_transcript_text(
+                            selected['transcript_url'],
+                            soundbite['start'],
+                            soundbite['duration']
+                        ) or soundbite['text']
+                    else:
+                        transcript_text = soundbite['text']
 
                     # Genera audiogram per ogni formato abilitato
                     formats_info = {}
@@ -400,6 +442,22 @@ def main():
                         )
 
                         print(f"✓ {format_name}: {output_path}")
+
+                    # Genera file caption .md
+                    print("Generazione file caption...")
+                    caption_path = os.path.join(
+                        output_dir,
+                        f"ep{selected['number']}_sb{soundbite_num}_caption.md"
+                    )
+                    generate_caption_file(
+                        caption_path,
+                        selected['number'],
+                        selected['title'],
+                        selected['link'],
+                        soundbite['text'],
+                        transcript_text
+                    )
+                    print(f"✓ Caption: {caption_path}")
 
                 print(f"\n{'='*60}")
                 print(f"Tutti gli audiogram generati con successo nella cartella 'output'!")
@@ -475,12 +533,21 @@ def main():
                         # Ottieni chunk trascrizione
                         print("Elaborazione trascrizione...")
                         transcript_chunks = []
+                        transcript_text = ""
                         if selected['transcript_url']:
                             transcript_chunks = get_transcript_chunks(
                                 selected['transcript_url'],
                                 soundbite['start'],
                                 soundbite['duration']
                             )
+                            # Estrai testo completo per caption
+                            transcript_text = get_transcript_text(
+                                selected['transcript_url'],
+                                soundbite['start'],
+                                soundbite['duration']
+                            ) or soundbite['text']
+                        else:
+                            transcript_text = soundbite['text']
 
                         # Genera audiogram per ogni formato abilitato
                         formats_info = {}
@@ -509,6 +576,22 @@ def main():
                             )
 
                             print(f"✓ {format_name}: {output_path}")
+
+                        # Genera file caption .md
+                        print("Generazione file caption...")
+                        caption_path = os.path.join(
+                            output_dir,
+                            f"ep{selected['number']}_sb{soundbite_num}_caption.md"
+                        )
+                        generate_caption_file(
+                            caption_path,
+                            selected['number'],
+                            selected['title'],
+                            selected['link'],
+                            soundbite['text'],
+                            transcript_text
+                        )
+                        print(f"✓ Caption: {caption_path}")
 
                     print(f"\n{'='*60}")
                     print(f"Audiogram generati con successo nella cartella: {output_dir}")
