@@ -1,7 +1,7 @@
 # File di configurazione di esempio per Audiogram Generator
 # Copia questo file come 'config.yaml' e personalizzalo secondo le tue esigenze
 
-# URL del feed RSS del podcast (OBBLIGATORIO)
+# URL del feed RSS del podcast (opzionale)
 # Esempio: https://pensieriincodice.it/podcast/index.xml
 feed_url: https://pensieriincodice.it/podcast/index.xml
 

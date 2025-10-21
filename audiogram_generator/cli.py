@@ -14,11 +14,8 @@ from .video_generator import generate_audiogram, download_image
 from .config import Config
 
 
-def get_podcast_episodes(feed_url=None):
+def get_podcast_episodes(feed_url):
     """Recupera la lista degli episodi dal feed RSS"""
-    if feed_url is None:
-        feed_url = "https://pensieriincodice.it/podcast/index.xml"
-
     # Crea un contesto SSL che non verifica i certificati
     ssl_context = ssl.create_default_context()
     ssl_context.check_hostname = False
@@ -241,12 +238,22 @@ def main():
     colors = config.get('colors')
     formats_config = config.get('formats')
 
-    # Verifica che feed_url sia specificato
+    # Chiedi feed_url interattivamente se non specificato
     if feed_url is None:
-        print("Errore: feed_url non specificato. Usa --feed-url oppure specifica il parametro nel file di configurazione.")
-        return
+        try:
+            while True:
+                user_input = input("\nInserisci l'URL del feed RSS del podcast: ").strip()
+                if user_input:
+                    feed_url = user_input
+                    print(f"Usando feed: {feed_url}")
+                    break
+                else:
+                    print("L'URL del feed non può essere vuoto. Riprova.")
+        except KeyboardInterrupt:
+            print("\nOperazione annullata.")
+            return
 
-    print("Recupero episodi dal feed...")
+    print("\nRecupero episodi dal feed...")
     episodes, podcast_info = get_podcast_episodes(feed_url)
 
     if not episodes:
