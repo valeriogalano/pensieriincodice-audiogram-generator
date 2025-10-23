@@ -1,5 +1,5 @@
 """
-Audiogram Generator for Pensieri in Codice Podcast
+Audiogram Generator for Podcast
 """
 
 __version__ = "0.1.0"

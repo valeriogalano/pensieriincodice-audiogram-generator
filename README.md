@@ -1,6 +1,6 @@
-# Pensieri in Codice - Audiogram Generator
+# Podcast Audiogram Generator
 
-Generatore automatico di audiogrammi per il podcast Pensieri in Codice. Il tool scarica episodi dal feed RSS del podcast, estrae i soundbites con le relative trascrizioni, e genera video audiogrammi ottimizzati per tutte le principali piattaforme social.
+Generatore automatico di audiogrammi per podcast. Il tool scarica episodi dal feed RSS, estrae i soundbites con le relative trascrizioni, e genera video audiogrammi ottimizzati per tutte le principali piattaforme social.
 
 ## Caratteristiche
 
@@ -24,7 +24,7 @@ Generatore automatico di audiogrammi per il podcast Pensieri in Codice. Il tool 
 ## Struttura del progetto
 
 ```
-pensieriincodice-audiogram-generator/
+podcast-audiogram-generator/
 ├── audiogram_generator/        # Modulo principale
 │   ├── __init__.py
 │   ├── __main__.py            # Entry point
@@ -65,8 +65,8 @@ Scarica da [ffmpeg.org](https://ffmpeg.org/download.html)
 
 1. Clona il repository:
 ```bash
-git clone https://github.com/vgalano/pensieriincodice-audiogram-generator.git
-cd pensieriincodice-audiogram-generator
+git clone https://github.com/vgalano/podcast-audiogram-generator.git
+cd podcast-audiogram-generator
 ```
 
 2. Installa le dipendenze:
@@ -250,7 +250,7 @@ Ogni video generato include:
   - Waveform animata ai lati sincronizzata con l'audio
 - **Trascrizione in tempo reale** nella parte bassa dell'area centrale
 - **Footer arancione** con:
-  - Titolo del podcast ("Pensieri in codice")
+  - Titolo del podcast
   - Titolo dell'episodio/soundbite
 
 ## Test

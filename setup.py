@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="audiogram-generator",
+    name="podcast-audiogram-generator",
     version="0.1.0",
-    description="Generatore di audiogrammi per Pensieri in Codice",
+    description="Generatore di audiogrammi per podcast",
     author="Valerio Galano",
     packages=find_packages(),
     install_requires=[
