@@ -31,7 +31,10 @@ def get_podcast_episodes(feed_url):
     soundbites_by_guid = {}
 
     # Registra namespace
-    namespaces = {'podcast': 'https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/1.0.md'}
+    namespaces = {
+        'podcast': 'https://podcastindex.org/namespace/1.0',
+        'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd'
+    }
 
     # Estrai informazioni del podcast (locandina e titolo)
     podcast_info = {}
@@ -49,9 +52,15 @@ def get_podcast_episodes(feed_url):
             if url_elem is not None and url_elem.text:
                 podcast_info['image_url'] = url_elem.text.strip()
 
-    # Trova tutti gli item e i loro soundbites, transcript e audio
+        # Keywords/tags del podcast
+        keywords_elem = channel.find('itunes:keywords', namespaces)
+        if keywords_elem is not None and keywords_elem.text:
+            podcast_info['keywords'] = keywords_elem.text.strip()
+
+    # Trova tutti gli item e i loro soundbites, transcript, audio e keywords
     transcript_by_guid = {}
     audio_by_guid = {}
+    keywords_by_guid = {}
     for item in root.findall('.//item'):
         guid_elem = item.find('guid')
         if guid_elem is not None:
@@ -82,6 +91,11 @@ def get_podcast_episodes(feed_url):
                 if audio_url:
                     audio_by_guid[guid] = audio_url
 
+            # Estrai keywords dell'episodio
+            keywords_elem = item.find('itunes:keywords', namespaces)
+            if keywords_elem is not None and keywords_elem.text:
+                keywords_by_guid[guid] = keywords_elem.text.strip()
+
     feed = feedparser.parse(feed_content)
 
     episodes = []
@@ -100,7 +114,8 @@ def get_podcast_episodes(feed_url):
             'description': entry.get('description', ''),
             'soundbites': soundbites_by_guid.get(guid, []),
             'transcript_url': transcript_by_guid.get(guid, None),
-            'audio_url': audio_by_guid.get(guid, None)
+            'audio_url': audio_by_guid.get(guid, None),
+            'keywords': keywords_by_guid.get(guid, None)
         }
         episodes.append(episode)
 
@@ -206,7 +221,8 @@ def get_transcript_chunks(transcript_url, start_time, duration):
 
 
 def generate_caption_file(output_path, episode_number, episode_title, episode_link,
-                          soundbite_title, transcript_text):
+                          soundbite_title, transcript_text, podcast_keywords=None,
+                          episode_keywords=None, config_hashtags=None):
     """
     Genera un file .md con la caption per il post social
 
@@ -217,7 +233,39 @@ def generate_caption_file(output_path, episode_number, episode_title, episode_li
         episode_link: Link all'episodio
         soundbite_title: Titolo del soundbite
         transcript_text: Testo della trascrizione
+        podcast_keywords: Keywords dal feed del podcast (opzionale)
+        episode_keywords: Keywords dal feed dell'episodio (opzionale)
+        config_hashtags: Lista di hashtag dal file di configurazione (opzionale)
     """
+    # Combina tutti gli hashtag disponibili
+    hashtags = []
+
+    # Aggiungi keywords dal feed del podcast
+    if podcast_keywords:
+        feed_tags = [tag.strip() for tag in podcast_keywords.split(',')]
+        hashtags.extend(feed_tags)
+
+    # Aggiungi keywords dall'episodio
+    if episode_keywords:
+        episode_tags = [tag.strip() for tag in episode_keywords.split(',')]
+        hashtags.extend(episode_tags)
+
+    # Aggiungi hashtag dal file di configurazione
+    if config_hashtags:
+        hashtags.extend(config_hashtags)
+
+    # Rimuovi duplicati preservando l'ordine
+    seen = set()
+    unique_hashtags = []
+    for tag in hashtags:
+        tag_lower = tag.lower()
+        if tag_lower not in seen:
+            seen.add(tag_lower)
+            unique_hashtags.append(tag)
+
+    # Formatta hashtag con il simbolo #
+    hashtag_string = ' '.join([f'#{tag}' for tag in unique_hashtags]) if unique_hashtags else '#podcast'
+
     caption = f"""# Caption per Social Media
 
 ## Episodio {episode_number}: {episode_title}
@@ -231,7 +279,7 @@ def generate_caption_file(output_path, episode_number, episode_title, episode_li
 ---
 
 **Hashtags suggeriti:**
-#podcast #tech #sviluppo #programmazione #coding
+{hashtag_string}
 """
 
     with open(output_path, 'w', encoding='utf-8') as f:
@@ -267,9 +315,10 @@ def main():
     soundbites_choice = config.get('soundbites')
     output_dir = config.get('output_dir', os.path.join(os.getcwd(), 'output'))
 
-    # Carica configurazione colori e formati
+    # Carica configurazione colori, formati e hashtags
     colors = config.get('colors')
     formats_config = config.get('formats')
+    config_hashtags = config.get('hashtags', [])
 
     # Chiedi feed_url interattivamente se non specificato
     if feed_url is None:
@@ -455,7 +504,10 @@ def main():
                         selected['title'],
                         selected['link'],
                         soundbite['text'],
-                        transcript_text
+                        transcript_text,
+                        podcast_info.get('keywords'),
+                        selected.get('keywords'),
+                        config_hashtags
                     )
                     print(f"✓ Caption: {caption_path}")
 
@@ -589,7 +641,10 @@ def main():
                             selected['title'],
                             selected['link'],
                             soundbite['text'],
-                            transcript_text
+                            transcript_text,
+                            podcast_info.get('keywords'),
+                            selected.get('keywords'),
+                            config_hashtags
                         )
                         print(f"✓ Caption: {caption_path}")
 

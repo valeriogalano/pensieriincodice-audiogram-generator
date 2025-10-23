@@ -200,6 +200,21 @@ Formati disponibili:
 - `square`: 1:1 per Post Instagram, Twitter, Mastodon
 - `horizontal`: 16:9 per YouTube
 
+**Hashtag personalizzabili:**
+
+È possibile specificare una lista di hashtag aggiuntivi nel file di configurazione:
+
+```yaml
+hashtags:
+  - podcast
+  - tech
+  - sviluppo
+  - programmazione
+  - coding
+```
+
+Gli hashtag specificati nel file di configurazione verranno combinati con le keywords estratte dal feed RSS (sia a livello di podcast che di episodio). Gli hashtag duplicati vengono automaticamente rimossi, preservando l'ordine di inserimento (prima keywords del podcast, poi keywords dell'episodio, infine hashtag dal file di configurazione).
+
 ### Output
 
 I video e i file caption generati vengono salvati nella directory specificata (default: `output/`) con naming:
@@ -227,7 +242,7 @@ Ogni file `_caption.md` contiene:
 - Titolo del soundbite
 - Testo completo della trascrizione
 - Link all'episodio completo
-- Hashtag suggeriti
+- Hashtag suggeriti (combinazione di keywords dal feed RSS e hashtag configurati)
 
 Puoi copiare il contenuto direttamente per creare i tuoi post sui social media.
 

@@ -55,6 +55,13 @@ formats:
     enabled: true
     description: "Orizzontale 16:9 (YouTube)"
 
+# Hashtag aggiuntivi per i post social (opzionale)
+# Questi hashtag verranno aggiunti a quelli estratti dal feed RSS
+# Formato: lista di hashtag senza il simbolo #
+hashtags:
+  - podcast
+  - Pensieriincodice
+
 # Esempi di personalizzazione:
 #
 # 1. Disabilitare un formato specifico:
