@@ -297,6 +297,7 @@ python3 -m unittest tests.test_config.TestConfig.test_configuration_precedence -
 - [ ] Aggiungere la trascrizione tramite IA se non presente nel feed
 - [x] Permettere la configurazione per più podcast tramite file di configurazione
 - [x] Implementare batteria di test per verificare che i meccanismi di configurazione funzionino correttamente 
+- [ ] Tradurre documentazione, commenti, ecc. in inglese
 
 ## Licenza
 
