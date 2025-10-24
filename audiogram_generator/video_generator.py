@@ -125,38 +125,67 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
     if progress_width > 0:
         draw.rectangle([(0, 0), (progress_width, progress_height)], fill=colors['background'])
 
-    # Header (13% altezza) - inizia dopo la progress bar
+    # Header (17% altezza) - aumentato per ospitare 3 righe di titolo
     header_top = progress_height
-    header_height = int(height * 0.13)
+    header_height = int(height * 0.17)
     draw.rectangle([(0, header_top), (width, header_top + header_height)], fill=colors['primary'])
 
-    # Titolo episodio nel header
+    # Titolo episodio nel header (con word wrap su 3 righe)
     try:
-        font_header = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(header_height * 0.25))
+        font_header = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(header_height * 0.17))
     except:
         font_header = ImageFont.load_default()
 
-    # Tronca il titolo se troppo lungo
-    header_text = episode_title
+    # Word wrap del titolo su max 3 righe
     max_header_width = int(width * 0.90)
-    bbox = draw.textbbox((0, 0), header_text, font=font_header)
-    text_width = bbox[2] - bbox[0]
+    words = episode_title.split()
+    lines = []
+    current_line = ""
 
-    # Se il testo è troppo lungo, tronca con "..."
-    if text_width > max_header_width:
-        while text_width > max_header_width and len(header_text) > 3:
-            header_text = header_text[:-4] + "..."
-            bbox = draw.textbbox((0, 0), header_text, font=font_header)
-            text_width = bbox[2] - bbox[0]
+    for word in words:
+        test_line = current_line + word + " " if current_line else word + " "
+        bbox = draw.textbbox((0, 0), test_line, font=font_header)
+        test_width = bbox[2] - bbox[0]
 
-    text_x = (width - text_width) // 2
-    # Posiziona in basso (70% dell'altezza header dal top)
-    text_y = header_top + int(header_height * 0.70) - (bbox[3] - bbox[1]) // 2
-    draw.text((text_x, text_y), header_text, fill=colors['text'], font=font_header)
+        if test_width <= max_header_width:
+            current_line = test_line
+        else:
+            if current_line:
+                lines.append(current_line.strip())
+                current_line = word + " "
+            else:
+                # Parola singola troppo lunga, la tronchiamo
+                current_line = word[:30] + "... "
+                lines.append(current_line.strip())
+                current_line = ""
 
-    # Area centrale (58% altezza)
+    if current_line:
+        lines.append(current_line.strip())
+
+    # Limita a 3 righe, troncando la terza se necessario
+    lines = lines[:3]
+    if len(lines) == 3:
+        bbox = draw.textbbox((0, 0), lines[2], font=font_header)
+        while (bbox[2] - bbox[0]) > max_header_width and len(lines[2]) > 3:
+            lines[2] = lines[2][:-4] + "..."
+            bbox = draw.textbbox((0, 0), lines[2], font=font_header)
+
+    # Disegna le righe centrate, posizionate più in basso
+    bbox_sample = draw.textbbox((0, 0), "Test", font=font_header)
+    line_height = bbox_sample[3] - bbox_sample[1]
+    total_height = len(lines) * line_height * 1.2
+    start_y = header_top + int(header_height * 0.65) - int(total_height // 2)
+
+    for i, line in enumerate(lines):
+        bbox = draw.textbbox((0, 0), line, font=font_header)
+        line_width = bbox[2] - bbox[0]
+        line_x = (width - line_width) // 2
+        line_y = start_y + i * int(line_height * 1.2)
+        draw.text((line_x, line_y), line, fill=colors['text'], font=font_header)
+
+    # Area centrale (54% altezza) - ridotta per compensare l'header più grande
     central_top = header_top + header_height
-    central_height = int(height * 0.58)
+    central_height = int(height * 0.54)
     central_bottom = central_top + central_height
 
     # Visualizzatore waveform tipo equalizer che "balla" con l'audio
