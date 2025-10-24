@@ -232,23 +232,23 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
             bar_height = int(min_height + (bar_amplitude * (max_height - min_height)))
             bar_height = max(min_height, min(bar_height, max_height))
 
-            # Centra verticalmente
-            y_center = central_top + central_height // 2
+            # Centra verticalmente - spostato più in alto (al 40% invece del 50%)
+            y_center = central_top + int(central_height * 0.40)
             y_top = y_center - bar_height // 2
             y_bottom = y_center + bar_height // 2
 
             # Disegna la bar
             draw.rectangle([(x, y_top), (x + bar_width, y_bottom)], fill=colors['primary'])
 
-    # Logo podcast al centro (sopra la waveform)
+    # Logo podcast al centro (sopra la waveform) - spostato più in alto
     if os.path.exists(podcast_logo_path):
         logo = Image.open(podcast_logo_path)
         logo_size = int(min(width, central_height) * 0.6)
         logo = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
 
-        # Posizione centrata
+        # Posizione spostata più in alto (al 35% invece del 50%)
         logo_x = (width - logo_size) // 2
-        logo_y = central_top + (central_height - logo_size) // 2
+        logo_y = central_top + int(central_height * 0.35) - logo_size // 2
         img.paste(logo, (logo_x, logo_y), logo if logo.mode == 'RGBA' else None)
 
     # Footer (27% altezza) - aumentato per ospitare podcast title + CTA
@@ -294,12 +294,12 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
 
         if current_text:
             try:
-                font_transcript = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(height * 0.025))
+                font_transcript = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(height * 0.028))
             except:
                 font_transcript = ImageFont.load_default()
 
-            # Box per la trascrizione
-            transcript_y = central_bottom - int(central_height * 0.15)
+            # Box per la trascrizione - posizionata più in alto, sotto il logo
+            transcript_y = central_top + int(central_height * 0.67)
             max_width = int(width * 0.85)
 
             # Word wrap
@@ -318,13 +318,14 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
             if current_line:
                 lines.append(current_line.strip())
 
-            # Disegna background semi-trasparente per leggibilità
-            for i, line in enumerate(lines[:2]):  # Max 2 lines
+            # Disegna background semi-trasparente per leggibilità - max 4 righe
+            for i, line in enumerate(lines[:5]):  # Max 5 lines
                 bbox = draw.textbbox((0, 0), line, font=font_transcript)
                 line_width = bbox[2] - bbox[0]
                 line_height = bbox[3] - bbox[1]
                 line_x = (width - line_width) // 2
-                line_y = transcript_y + i * (line_height + 5)
+                # Aumenta spaziatura tra le righe (line_height * 1.3 invece di line_height + 5)
+                line_y = transcript_y + i * int(line_height * 1.6)
 
                 # Background
                 padding = 10
