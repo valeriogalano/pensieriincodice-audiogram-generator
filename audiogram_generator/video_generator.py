@@ -190,7 +190,7 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
     # Logo podcast al centro (sopra la waveform)
     if os.path.exists(podcast_logo_path):
         logo = Image.open(podcast_logo_path)
-        logo_size = int(min(width, central_height) * 0.8)
+        logo_size = int(min(width, central_height) * 0.6)
         logo = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
 
         # Posizione centrata
