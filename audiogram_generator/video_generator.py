@@ -113,9 +113,21 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
     img = Image.new('RGB', (width, height), colors['background'])
     draw = ImageDraw.Draw(img)
 
-    # Header (15% altezza)
+    # Progress bar (2% altezza) - barra sottile in cima
+    progress_height = int(height * 0.02)
+    progress_percent = current_time / audio_duration if audio_duration > 0 else 0
+    progress_width = int(width * progress_percent)
+
+    # Background della progress bar (arancione scuro)
+    draw.rectangle([(0, 0), (width, progress_height)], fill=colors['primary'])
+    # Riempimento progress (beige che avanza)
+    if progress_width > 0:
+        draw.rectangle([(0, 0), (progress_width, progress_height)], fill=colors['background'])
+
+    # Header (15% altezza) - inizia dopo la progress bar
+    header_top = progress_height
     header_height = int(height * 0.15)
-    draw.rectangle([(0, 0), (width, header_height)], fill=colors['primary'])
+    draw.rectangle([(0, header_top), (width, header_top + header_height)], fill=colors['primary'])
 
     # Testo "ASCOLTA" nel header
     try:
@@ -127,11 +139,11 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
     bbox = draw.textbbox((0, 0), header_text, font=font_header)
     text_width = bbox[2] - bbox[0]
     text_x = (width - text_width) // 2
-    text_y = (header_height - (bbox[3] - bbox[1])) // 2
+    text_y = header_top + (header_height - (bbox[3] - bbox[1])) // 2
     draw.text((text_x, text_y), header_text, fill=colors['text'], font=font_header)
 
     # Area centrale (60% altezza)
-    central_top = header_height
+    central_top = header_top + header_height
     central_height = int(height * 0.60)
     central_bottom = central_top + central_height
 
