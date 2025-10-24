@@ -320,6 +320,7 @@ def main():
     formats_config = config.get('formats')
     config_hashtags = config.get('hashtags', [])
     cta_text = config.get('cta_text')
+    show_progress_bar = config.get('show_progress_bar', False)
 
     # Chiedi feed_url interattivamente se non specificato
     if feed_url is None:
@@ -489,7 +490,8 @@ def main():
                             float(soundbite['duration']),
                             formats_config,
                             colors,
-                            cta_text
+                            cta_text,
+                            show_progress_bar
                         )
 
                         print(f"✓ {format_name}: {output_path}")
@@ -627,7 +629,8 @@ def main():
                                 float(soundbite['duration']),
                                 formats_config,
                                 colors,
-                                cta_text
+                                cta_text,
+                                show_progress_bar
                             )
 
                             print(f"✓ {format_name}: {output_path}")
