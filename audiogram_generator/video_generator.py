@@ -130,17 +130,28 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
     header_height = int(height * 0.13)
     draw.rectangle([(0, header_top), (width, header_top + header_height)], fill=colors['primary'])
 
-    # Testo "ASCOLTA" nel header
+    # Titolo episodio nel header
     try:
-        font_header = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(header_height * 0.45))
+        font_header = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(header_height * 0.25))
     except:
         font_header = ImageFont.load_default()
 
-    header_text = "ASCOLTA"
+    # Tronca il titolo se troppo lungo
+    header_text = episode_title
+    max_header_width = int(width * 0.90)
     bbox = draw.textbbox((0, 0), header_text, font=font_header)
     text_width = bbox[2] - bbox[0]
+
+    # Se il testo è troppo lungo, tronca con "..."
+    if text_width > max_header_width:
+        while text_width > max_header_width and len(header_text) > 3:
+            header_text = header_text[:-4] + "..."
+            bbox = draw.textbbox((0, 0), header_text, font=font_header)
+            text_width = bbox[2] - bbox[0]
+
     text_x = (width - text_width) // 2
-    text_y = header_top + (header_height - (bbox[3] - bbox[1])) // 2
+    # Posiziona in basso (70% dell'altezza header dal top)
+    text_y = header_top + int(header_height * 0.70) - (bbox[3] - bbox[1]) // 2
     draw.text((text_x, text_y), header_text, fill=colors['text'], font=font_header)
 
     # Area centrale (58% altezza)
