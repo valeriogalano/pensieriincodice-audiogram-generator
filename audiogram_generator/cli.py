@@ -315,10 +315,11 @@ def main():
     soundbites_choice = config.get('soundbites')
     output_dir = config.get('output_dir', os.path.join(os.getcwd(), 'output'))
 
-    # Carica configurazione colori, formati e hashtags
+    # Carica configurazione colori, formati, hashtags e CTA
     colors = config.get('colors')
     formats_config = config.get('formats')
     config_hashtags = config.get('hashtags', [])
+    cta_text = config.get('cta_text')
 
     # Chiedi feed_url interattivamente se non specificato
     if feed_url is None:
@@ -487,7 +488,8 @@ def main():
                             transcript_chunks,
                             float(soundbite['duration']),
                             formats_config,
-                            colors
+                            colors,
+                            cta_text
                         )
 
                         print(f"✓ {format_name}: {output_path}")
@@ -624,7 +626,8 @@ def main():
                                 transcript_chunks,
                                 float(soundbite['duration']),
                                 formats_config,
-                                colors
+                                colors,
+                                cta_text
                             )
 
                             print(f"✓ {format_name}: {output_path}")

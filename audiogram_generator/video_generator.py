@@ -77,7 +77,7 @@ def get_waveform_data(audio_path, fps=24):
 
 
 def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, episode_title,
-                           waveform_data, current_time, transcript_chunks, audio_duration, colors=None):
+                           waveform_data, current_time, transcript_chunks, audio_duration, colors=None, cta_text=None):
     """
     Crea un singolo frame dell'audiogram
 
@@ -91,6 +91,7 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
         transcript_chunks: Lista di chunk di trascrizione con timing
         audio_duration: Durata totale dell'audio
         colors: Dizionario con i colori personalizzati (opzionale)
+        cta_text: Testo della call-to-action (opzionale)
     """
     # Usa colori di default o personalizzati
     if colors is None:
@@ -124,14 +125,14 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
     if progress_width > 0:
         draw.rectangle([(0, 0), (progress_width, progress_height)], fill=colors['background'])
 
-    # Header (15% altezza) - inizia dopo la progress bar
+    # Header (13% altezza) - inizia dopo la progress bar
     header_top = progress_height
-    header_height = int(height * 0.15)
+    header_height = int(height * 0.13)
     draw.rectangle([(0, header_top), (width, header_top + header_height)], fill=colors['primary'])
 
     # Testo "ASCOLTA" nel header
     try:
-        font_header = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(header_height * 0.4))
+        font_header = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(header_height * 0.45))
     except:
         font_header = ImageFont.load_default()
 
@@ -142,9 +143,9 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
     text_y = header_top + (header_height - (bbox[3] - bbox[1])) // 2
     draw.text((text_x, text_y), header_text, fill=colors['text'], font=font_header)
 
-    # Area centrale (60% altezza)
+    # Area centrale (58% altezza)
     central_top = header_top + header_height
-    central_height = int(height * 0.60)
+    central_height = int(height * 0.58)
     central_bottom = central_top + central_height
 
     # Visualizzatore waveform tipo equalizer che "balla" con l'audio
@@ -210,10 +211,11 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
         logo_y = central_top + (central_height - logo_size) // 2
         img.paste(logo, (logo_x, logo_y), logo if logo.mode == 'RGBA' else None)
 
-    # Footer (25% altezza)
+    # Footer (20% altezza)
     footer_top = central_bottom
-    footer_height = height - footer_top
-    draw.rectangle([(0, footer_top), (width, height)], fill=colors['primary'])
+    footer_height = int(height * 0.20)
+    footer_bottom = footer_top + footer_height
+    draw.rectangle([(0, footer_top), (width, footer_bottom)], fill=colors['primary'])
 
     # Titolo podcast nel footer
     try:
@@ -310,12 +312,30 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
 
                 draw.text((line_x, line_y), line, fill=colors['text'], font=font_transcript)
 
+    # Call-to-action (7% altezza) - banda in fondo
+    if cta_text:  # Mostra solo se specificato
+        cta_top = footer_bottom
+        cta_height = int(height * 0.07)
+        draw.rectangle([(0, cta_top), (width, cta_top + cta_height)], fill=colors['primary'])
+
+        # Testo CTA
+        try:
+            font_cta = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(cta_height * 0.30))
+        except:
+            font_cta = ImageFont.load_default()
+
+        bbox = draw.textbbox((0, 0), cta_text, font=font_cta)
+        cta_width = bbox[2] - bbox[0]
+        cta_x = (width - cta_width) // 2
+        cta_y = cta_top + (cta_height - (bbox[3] - bbox[1])) // 2
+        draw.text((cta_x, cta_y), cta_text, fill=colors['text'], font=font_cta)
+
     return np.array(img)
 
 
 def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
                       podcast_title, episode_title, transcript_chunks, duration,
-                      formats=None, colors=None):
+                      formats=None, colors=None, cta_text=None):
     """
     Genera un video audiogram completo
 
@@ -330,6 +350,7 @@ def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
         duration: Durata del video
         formats: Dizionario con i formati personalizzati (opzionale)
         colors: Dizionario con i colori personalizzati (opzionale)
+        cta_text: Testo della call-to-action (opzionale)
     """
     # Usa formati personalizzati o di default
     if formats is None or format_name not in formats:
@@ -366,7 +387,8 @@ def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
             t,
             transcript_chunks,
             duration,
-            colors
+            colors,
+            cta_text
         )
 
     # Crea video clip

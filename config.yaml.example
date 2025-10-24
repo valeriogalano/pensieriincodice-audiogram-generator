@@ -62,6 +62,11 @@ hashtags:
   - podcast
   - Pensieriincodice
 
+# Testo della Call-to-Action (opzionale)
+# Questo testo apparirà nella banda in fondo al video
+# Default: "Ascolta l'episodio completo su pensieriincodice.it"
+cta_text: "Ascolta l'episodio completo su pensieriincodice.it"
+
 # Esempi di personalizzazione:
 #
 # 1. Disabilitare un formato specifico:
