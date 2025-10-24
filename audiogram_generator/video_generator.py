@@ -309,6 +309,428 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
     return img
 
 
+def create_square_layout(img, draw, width, height, podcast_logo_path, podcast_title, episode_title,
+                         waveform_data, current_time, transcript_chunks, audio_duration, colors, cta_text):
+    """
+    Layout specifico per formato quadrato 1:1 (1080x1080)
+    Ottimizzato per Instagram Post, Twitter, Mastodon, LinkedIn
+    Logo e waveform centrati verticalmente
+    """
+    # Progress bar (2% altezza) - barra sottile in cima
+    progress_height = int(height * 0.02)
+    progress_percent = current_time / audio_duration if audio_duration > 0 else 0
+    progress_width = int(width * progress_percent)
+
+    # Background della progress bar (arancione)
+    draw.rectangle([(0, 0), (width, progress_height)], fill=colors['primary'])
+    # Riempimento progress (beige che avanza)
+    if progress_width > 0:
+        draw.rectangle([(0, 0), (progress_width, progress_height)], fill=colors['background'])
+
+    # Header (12% altezza) - più piccolo per square
+    header_top = progress_height
+    header_height = int(height * 0.12)
+    draw.rectangle([(0, header_top), (width, header_top + header_height)], fill=colors['primary'])
+
+    # Titolo episodio nel header (2 righe max per square)
+    try:
+        font_header = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(header_height * 0.22))
+    except:
+        font_header = ImageFont.load_default()
+
+    # Word wrap del titolo su max 2 righe
+    max_header_width = int(width * 0.90)
+    words = episode_title.split()
+    lines = []
+    current_line = ""
+
+    for word in words:
+        test_line = current_line + word + " " if current_line else word + " "
+        bbox = draw.textbbox((0, 0), test_line, font=font_header)
+        test_width = bbox[2] - bbox[0]
+
+        if test_width <= max_header_width:
+            current_line = test_line
+        else:
+            if current_line:
+                lines.append(current_line.strip())
+                current_line = word + " "
+            else:
+                current_line = word[:30] + "... "
+                lines.append(current_line.strip())
+                current_line = ""
+
+    if current_line:
+        lines.append(current_line.strip())
+
+    # Limita a 2 righe per square
+    lines = lines[:2]
+    if len(lines) == 2:
+        bbox = draw.textbbox((0, 0), lines[1], font=font_header)
+        while (bbox[2] - bbox[0]) > max_header_width and len(lines[1]) > 3:
+            lines[1] = lines[1][:-4] + "..."
+            bbox = draw.textbbox((0, 0), lines[1], font=font_header)
+
+    # Disegna le righe centrate
+    bbox_sample = draw.textbbox((0, 0), "Test", font=font_header)
+    line_height = bbox_sample[3] - bbox_sample[1]
+    total_height = len(lines) * line_height * 1.2
+    start_y = header_top + int(header_height * 0.50) - int(total_height // 2)
+
+    for i, line in enumerate(lines):
+        bbox = draw.textbbox((0, 0), line, font=font_header)
+        line_width = bbox[2] - bbox[0]
+        line_x = (width - line_width) // 2
+        line_y = start_y + i * int(line_height * 1.2)
+        draw.text((line_x, line_y), line, fill=colors['text'], font=font_header)
+
+    # Area centrale (66% altezza) - più grande per square
+    central_top = header_top + header_height
+    central_height = int(height * 0.66)
+    central_bottom = central_top + central_height
+
+    # Visualizzatore waveform CENTRATO VERTICALMENTE
+    if waveform_data is not None and len(waveform_data) > 0:
+        bar_spacing = 3
+        bar_width = 12
+        total_bar_width = bar_width + bar_spacing
+
+        num_bars = width // total_bar_width
+        if num_bars % 2 != 0:
+            num_bars -= 1
+
+        if num_bars >= 2:
+            frame_idx = int((current_time / audio_duration) * len(waveform_data)) if audio_duration > 0 else 0
+            frame_idx = min(frame_idx, len(waveform_data) - 1)
+            current_amplitude = waveform_data[frame_idx]
+
+            np.random.seed(42)
+            sensitivities = np.random.uniform(0.6, 1.4, num_bars // 2)
+            sensitivities = np.concatenate([sensitivities, sensitivities[::-1]])
+
+            for i in range(num_bars):
+                x = i * total_bar_width
+
+                center_idx = num_bars // 2
+                distance_from_center = abs(i - center_idx)
+                center_boost = 1.0 + (1.0 - distance_from_center / center_idx) * 0.4 if center_idx > 0 else 1.0
+                bar_amplitude = current_amplitude * sensitivities[i] * center_boost
+
+                min_height = int(central_height * 0.12)
+                max_height = int(central_height * 0.70)
+                bar_height = int(min_height + (bar_amplitude * (max_height - min_height)))
+                bar_height = max(min_height, min(bar_height, max_height))
+
+                # CENTRATO VERTICALMENTE al 50%
+                y_center = central_top + central_height // 2
+                y_top = y_center - bar_height // 2
+                y_bottom = y_center + bar_height // 2
+
+                draw.rectangle([(x, y_top), (x + bar_width, y_bottom)], fill=colors['primary'])
+
+    # Logo podcast CENTRATO VERTICALMENTE
+    if os.path.exists(podcast_logo_path):
+        logo = Image.open(podcast_logo_path)
+        logo_size = int(min(width, central_height) * 0.5)
+        logo = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
+
+        # CENTRATO VERTICALMENTE al 50%
+        logo_x = (width - logo_size) // 2
+        logo_y = central_top + (central_height - logo_size) // 2
+        img.paste(logo, (logo_x, logo_y), logo if logo.mode == 'RGBA' else None)
+
+    # Footer (20% altezza)
+    footer_top = central_bottom
+    footer_height = int(height * 0.20)
+    footer_bottom = footer_top + footer_height
+    draw.rectangle([(0, footer_top), (width, footer_bottom)], fill=colors['primary'])
+
+    # Titolo podcast nel footer - font ingrandito
+    try:
+        font_title = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(footer_height * 0.18))
+    except:
+        font_title = ImageFont.load_default()
+
+    bbox = draw.textbbox((0, 0), podcast_title, font=font_title)
+    title_width = bbox[2] - bbox[0]
+    title_height = bbox[3] - bbox[1]
+    title_x = (width - title_width) // 2
+    title_y = footer_top + int(footer_height * 0.20)
+    draw.text((title_x, title_y), podcast_title, fill=colors['text'], font=font_title)
+
+    # Call-to-action sotto il titolo - font ingrandito
+    if cta_text:
+        try:
+            font_cta = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(footer_height * 0.13))
+        except:
+            font_cta = ImageFont.load_default()
+
+        bbox = draw.textbbox((0, 0), cta_text, font=font_cta)
+        cta_width = bbox[2] - bbox[0]
+        cta_x = (width - cta_width) // 2
+        cta_y = title_y + title_height + int(footer_height * 0.15)
+        draw.text((cta_x, cta_y), cta_text, fill=colors['text'], font=font_cta)
+
+    # Trascrizione in basso nell'area centrale
+    if transcript_chunks:
+        current_text = ""
+        for chunk in transcript_chunks:
+            if chunk['start'] <= current_time < chunk['end']:
+                current_text = chunk['text']
+                break
+
+        if current_text:
+            try:
+                font_transcript = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(height * 0.030))
+            except:
+                font_transcript = ImageFont.load_default()
+
+            transcript_y = central_bottom - int(central_height * 0.15)
+            max_width = int(width * 0.85)
+
+            words = current_text.split()
+            lines = []
+            current_line = ""
+            for word in words:
+                test_line = current_line + word + " "
+                bbox = draw.textbbox((0, 0), test_line, font=font_transcript)
+                if bbox[2] - bbox[0] <= max_width:
+                    current_line = test_line
+                else:
+                    if current_line:
+                        lines.append(current_line.strip())
+                    current_line = word + " "
+            if current_line:
+                lines.append(current_line.strip())
+
+            # Max 3 righe per square
+            for i, line in enumerate(lines[:3]):
+                bbox = draw.textbbox((0, 0), line, font=font_transcript)
+                line_width = bbox[2] - bbox[0]
+                line_height = bbox[3] - bbox[1]
+                line_x = (width - line_width) // 2
+                line_y = transcript_y + i * int(line_height * 1.3)
+
+                padding = 10
+                bg_color = colors['transcript_bg'] + (180,) if len(colors['transcript_bg']) == 3 else colors['transcript_bg']
+                draw.rectangle([
+                    (line_x - padding, line_y - padding),
+                    (line_x + line_width + padding, line_y + line_height + padding)
+                ], fill=bg_color)
+
+                draw.text((line_x, line_y), line, fill=colors['text'], font=font_transcript)
+
+    return img
+
+
+def create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcast_title, episode_title,
+                             waveform_data, current_time, transcript_chunks, audio_duration, colors, cta_text):
+    """
+    Layout specifico per formato orizzontale 16:9 (1920x1080)
+    Ottimizzato per YouTube
+    Logo e waveform centrati verticalmente
+    """
+    # Progress bar (2% altezza)
+    progress_height = int(height * 0.02)
+    progress_percent = current_time / audio_duration if audio_duration > 0 else 0
+    progress_width = int(width * progress_percent)
+
+    draw.rectangle([(0, 0), (width, progress_height)], fill=colors['primary'])
+    if progress_width > 0:
+        draw.rectangle([(0, 0), (progress_width, progress_height)], fill=colors['background'])
+
+    # Header (15% altezza)
+    header_top = progress_height
+    header_height = int(height * 0.15)
+    draw.rectangle([(0, header_top), (width, header_top + header_height)], fill=colors['primary'])
+
+    # Titolo episodio nel header (2 righe max)
+    try:
+        font_header = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(header_height * 0.25))
+    except:
+        font_header = ImageFont.load_default()
+
+    max_header_width = int(width * 0.90)
+    words = episode_title.split()
+    lines = []
+    current_line = ""
+
+    for word in words:
+        test_line = current_line + word + " " if current_line else word + " "
+        bbox = draw.textbbox((0, 0), test_line, font=font_header)
+        test_width = bbox[2] - bbox[0]
+
+        if test_width <= max_header_width:
+            current_line = test_line
+        else:
+            if current_line:
+                lines.append(current_line.strip())
+                current_line = word + " "
+            else:
+                current_line = word[:30] + "... "
+                lines.append(current_line.strip())
+                current_line = ""
+
+    if current_line:
+        lines.append(current_line.strip())
+
+    lines = lines[:2]
+    if len(lines) == 2:
+        bbox = draw.textbbox((0, 0), lines[1], font=font_header)
+        while (bbox[2] - bbox[0]) > max_header_width and len(lines[1]) > 3:
+            lines[1] = lines[1][:-4] + "..."
+            bbox = draw.textbbox((0, 0), lines[1], font=font_header)
+
+    bbox_sample = draw.textbbox((0, 0), "Test", font=font_header)
+    line_height = bbox_sample[3] - bbox_sample[1]
+    total_height = len(lines) * line_height * 1.2
+    start_y = header_top + int(header_height * 0.50) - int(total_height // 2)
+
+    for i, line in enumerate(lines):
+        bbox = draw.textbbox((0, 0), line, font=font_header)
+        line_width = bbox[2] - bbox[0]
+        line_x = (width - line_width) // 2
+        line_y = start_y + i * int(line_height * 1.2)
+        draw.text((line_x, line_y), line, fill=colors['text'], font=font_header)
+
+    # Area centrale (68% altezza)
+    central_top = header_top + header_height
+    central_height = int(height * 0.68)
+    central_bottom = central_top + central_height
+
+    # Waveform CENTRATA VERTICALMENTE
+    if waveform_data is not None and len(waveform_data) > 0:
+        bar_spacing = 3
+        bar_width = 12
+        total_bar_width = bar_width + bar_spacing
+
+        num_bars = width // total_bar_width
+        if num_bars % 2 != 0:
+            num_bars -= 1
+
+        if num_bars >= 2:
+            frame_idx = int((current_time / audio_duration) * len(waveform_data)) if audio_duration > 0 else 0
+            frame_idx = min(frame_idx, len(waveform_data) - 1)
+            current_amplitude = waveform_data[frame_idx]
+
+            np.random.seed(42)
+            sensitivities = np.random.uniform(0.6, 1.4, num_bars // 2)
+            sensitivities = np.concatenate([sensitivities, sensitivities[::-1]])
+
+            for i in range(num_bars):
+                x = i * total_bar_width
+
+                center_idx = num_bars // 2
+                distance_from_center = abs(i - center_idx)
+                center_boost = 1.0 + (1.0 - distance_from_center / center_idx) * 0.4 if center_idx > 0 else 1.0
+                bar_amplitude = current_amplitude * sensitivities[i] * center_boost
+
+                min_height = int(central_height * 0.15)
+                max_height = int(central_height * 0.70)
+                bar_height = int(min_height + (bar_amplitude * (max_height - min_height)))
+                bar_height = max(min_height, min(bar_height, max_height))
+
+                # CENTRATA VERTICALMENTE al 50%
+                y_center = central_top + central_height // 2
+                y_top = y_center - bar_height // 2
+                y_bottom = y_center + bar_height // 2
+
+                draw.rectangle([(x, y_top), (x + bar_width, y_bottom)], fill=colors['primary'])
+
+    # Logo CENTRATO VERTICALMENTE
+    if os.path.exists(podcast_logo_path):
+        logo = Image.open(podcast_logo_path)
+        logo_size = int(min(width * 0.3, central_height * 0.6))
+        logo = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
+
+        # CENTRATO VERTICALMENTE al 50%
+        logo_x = (width - logo_size) // 2
+        logo_y = central_top + (central_height - logo_size) // 2
+        img.paste(logo, (logo_x, logo_y), logo if logo.mode == 'RGBA' else None)
+
+    # Footer (15% altezza)
+    footer_top = central_bottom
+    footer_height = height - footer_top
+    draw.rectangle([(0, footer_top), (width, height)], fill=colors['primary'])
+
+    # Titolo podcast
+    try:
+        font_title = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(footer_height * 0.20))
+    except:
+        font_title = ImageFont.load_default()
+
+    bbox = draw.textbbox((0, 0), podcast_title, font=font_title)
+    title_width = bbox[2] - bbox[0]
+    title_height = bbox[3] - bbox[1]
+    title_x = (width - title_width) // 2
+    title_y = footer_top + int(footer_height * 0.25)
+    draw.text((title_x, title_y), podcast_title, fill=colors['text'], font=font_title)
+
+    # Call-to-action
+    if cta_text:
+        try:
+            font_cta = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(footer_height * 0.14))
+        except:
+            font_cta = ImageFont.load_default()
+
+        bbox = draw.textbbox((0, 0), cta_text, font=font_cta)
+        cta_width = bbox[2] - bbox[0]
+        cta_x = (width - cta_width) // 2
+        cta_y = title_y + title_height + int(footer_height * 0.15)
+        draw.text((cta_x, cta_y), cta_text, fill=colors['text'], font=font_cta)
+
+    # Trascrizione in basso nell'area centrale
+    if transcript_chunks:
+        current_text = ""
+        for chunk in transcript_chunks:
+            if chunk['start'] <= current_time < chunk['end']:
+                current_text = chunk['text']
+                break
+
+        if current_text:
+            try:
+                font_transcript = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(height * 0.030))
+            except:
+                font_transcript = ImageFont.load_default()
+
+            transcript_y = central_bottom - int(central_height * 0.18)
+            max_width = int(width * 0.85)
+
+            words = current_text.split()
+            lines = []
+            current_line = ""
+            for word in words:
+                test_line = current_line + word + " "
+                bbox = draw.textbbox((0, 0), test_line, font=font_transcript)
+                if bbox[2] - bbox[0] <= max_width:
+                    current_line = test_line
+                else:
+                    if current_line:
+                        lines.append(current_line.strip())
+                    current_line = word + " "
+            if current_line:
+                lines.append(current_line.strip())
+
+            # Max 2 righe per horizontal
+            for i, line in enumerate(lines[:2]):
+                bbox = draw.textbbox((0, 0), line, font=font_transcript)
+                line_width = bbox[2] - bbox[0]
+                line_height = bbox[3] - bbox[1]
+                line_x = (width - line_width) // 2
+                line_y = transcript_y + i * int(line_height * 1.3)
+
+                padding = 12
+                bg_color = colors['transcript_bg'] + (180,) if len(colors['transcript_bg']) == 3 else colors['transcript_bg']
+                draw.rectangle([
+                    (line_x - padding, line_y - padding),
+                    (line_x + line_width + padding, line_y + line_height + padding)
+                ], fill=bg_color)
+
+                draw.text((line_x, line_y), line, fill=colors['text'], font=font_transcript)
+
+    return img
+
+
 def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, episode_title,
                            waveform_data, current_time, transcript_chunks, audio_duration, colors=None, cta_text=None, format_name='vertical'):
     """
@@ -354,15 +776,13 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
                                      episode_title, waveform_data, current_time, transcript_chunks,
                                      audio_duration, colors, cta_text)
     elif format_name == 'square':
-        # TODO: Implementare create_square_layout
-        img = create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_title,
-                                     episode_title, waveform_data, current_time, transcript_chunks,
-                                     audio_duration, colors, cta_text)
+        img = create_square_layout(img, draw, width, height, podcast_logo_path, podcast_title,
+                                   episode_title, waveform_data, current_time, transcript_chunks,
+                                   audio_duration, colors, cta_text)
     elif format_name == 'horizontal':
-        # TODO: Implementare create_horizontal_layout
-        img = create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_title,
-                                     episode_title, waveform_data, current_time, transcript_chunks,
-                                     audio_duration, colors, cta_text)
+        img = create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcast_title,
+                                       episode_title, waveform_data, current_time, transcript_chunks,
+                                       audio_duration, colors, cta_text)
     else:
         # Default: usa vertical
         img = create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_title,
