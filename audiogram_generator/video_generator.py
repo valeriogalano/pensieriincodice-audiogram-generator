@@ -222,54 +222,38 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
         logo_y = central_top + (central_height - logo_size) // 2
         img.paste(logo, (logo_x, logo_y), logo if logo.mode == 'RGBA' else None)
 
-    # Footer (20% altezza)
+    # Footer (27% altezza) - aumentato per ospitare podcast title + CTA
     footer_top = central_bottom
-    footer_height = int(height * 0.20)
+    footer_height = int(height * 0.27)
     footer_bottom = footer_top + footer_height
     draw.rectangle([(0, footer_top), (width, footer_bottom)], fill=colors['primary'])
 
     # Titolo podcast nel footer
     try:
-        font_title = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(footer_height * 0.15))
-        font_episode = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(footer_height * 0.10))
+        font_title = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(footer_height * 0.12))
     except:
         font_title = ImageFont.load_default()
-        font_episode = ImageFont.load_default()
 
-    # Podcast title
+    # Podcast title centrato verticalmente nella parte superiore del footer
     bbox = draw.textbbox((0, 0), podcast_title, font=font_title)
     title_width = bbox[2] - bbox[0]
+    title_height = bbox[3] - bbox[1]
     title_x = (width - title_width) // 2
-    title_y = footer_top + int(footer_height * 0.10)
+    title_y = footer_top + int(footer_height * 0.15)
     draw.text((title_x, title_y), podcast_title, fill=colors['text'], font=font_title)
 
-    # Episode title (wrapped)
-    episode_y = title_y + int(footer_height * 0.20)
-    max_chars = 40
-    if len(episode_title) > max_chars:
-        words = episode_title.split()
-        lines = []
-        current_line = ""
-        for word in words:
-            if len(current_line) + len(word) + 1 <= max_chars:
-                current_line += word + " "
-            else:
-                lines.append(current_line.strip())
-                current_line = word + " "
-        if current_line:
-            lines.append(current_line.strip())
+    # Call-to-action sotto il titolo del podcast
+    if cta_text:  # Mostra solo se specificato
+        try:
+            font_cta = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(footer_height * 0.09))
+        except:
+            font_cta = ImageFont.load_default()
 
-        for i, line in enumerate(lines[:3]):  # Max 3 lines
-            bbox = draw.textbbox((0, 0), line, font=font_episode)
-            line_width = bbox[2] - bbox[0]
-            line_x = (width - line_width) // 2
-            line_y = episode_y + i * int(footer_height * 0.12)
-            draw.text((line_x, line_y), line, fill=colors['text'], font=font_episode)
-    else:
-        bbox = draw.textbbox((0, 0), episode_title, font=font_episode)
-        ep_width = bbox[2] - bbox[0]
-        ep_x = (width - ep_width) // 2
-        draw.text((ep_x, episode_y), episode_title, fill=colors['text'], font=font_episode)
+        bbox = draw.textbbox((0, 0), cta_text, font=font_cta)
+        cta_width = bbox[2] - bbox[0]
+        cta_x = (width - cta_width) // 2
+        cta_y = title_y + title_height + int(footer_height * 0.15)
+        draw.text((cta_x, cta_y), cta_text, fill=colors['text'], font=font_cta)
 
     # Trascrizione in tempo reale (sopra il footer, nell'area centrale bassa)
     if transcript_chunks:
@@ -322,24 +306,6 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
                 ], fill=bg_color)
 
                 draw.text((line_x, line_y), line, fill=colors['text'], font=font_transcript)
-
-    # Call-to-action (7% altezza) - banda in fondo
-    if cta_text:  # Mostra solo se specificato
-        cta_top = footer_bottom
-        cta_height = int(height * 0.07)
-        draw.rectangle([(0, cta_top), (width, cta_top + cta_height)], fill=colors['primary'])
-
-        # Testo CTA
-        try:
-            font_cta = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(cta_height * 0.30))
-        except:
-            font_cta = ImageFont.load_default()
-
-        bbox = draw.textbbox((0, 0), cta_text, font=font_cta)
-        cta_width = bbox[2] - bbox[0]
-        cta_x = (width - cta_width) // 2
-        cta_y = cta_top + (cta_height - (bbox[3] - bbox[1])) // 2
-        draw.text((cta_x, cta_y), cta_text, fill=colors['text'], font=font_cta)
 
     return np.array(img)
 
