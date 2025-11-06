@@ -3,7 +3,7 @@ Generatore di video audiogram
 """
 import os
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from moviepy import VideoClip, AudioFileClip
 from pydub import AudioSegment
 import urllib.request
@@ -25,6 +25,105 @@ COLOR_ORANGE = (242, 101, 34)
 COLOR_BEIGE = (235, 213, 197)
 COLOR_WHITE = (255, 255, 255)
 COLOR_BLACK = (50, 50, 50)
+
+
+def _subtitle_default_style(colors):
+    """Ritorna lo stile predefinito per i sottotitoli (trascrizione)."""
+    # Colori con alpha per sfondo
+    bg = tuple(colors.get('transcript_bg', COLOR_BLACK))
+    bg_with_alpha = bg + (190,) if len(bg) == 3 else bg
+    return {
+        'text_color': tuple(colors.get('text', COLOR_WHITE)),
+        'bg_color': bg_with_alpha,      # RGBA
+        'padding': 18,                  # px
+        'radius': 18,                   # px angoli arrotondati
+        'line_spacing': 1.28,           # moltiplicatore altezza riga
+        'shadow': True,                 # ombra soft al box
+        'shadow_offset': (0, 4),        # dx, dy
+        'shadow_blur': 10,              # raggio blur
+        'max_lines': 5,                 # righe massime visualizzate
+        'width_ratio': 0.88             # % della larghezza massima
+    }
+
+
+def _draw_rounded_box_with_shadow(base_img, box, fill, radius=16, shadow=True, shadow_offset=(0, 3), shadow_blur=8):
+    """Disegna un rettangolo arrotondato semi-trasparente con ombra su un overlay RGBA e lo compone su base_img.
+    box: (x1, y1, x2, y2)
+    Ritorna l'immagine risultante (stessa istanza o nuova se necessario).
+    """
+    # Assicurati che la base sia RGBA per alpha_composite
+    if base_img.mode != 'RGBA':
+        base_img = base_img.convert('RGBA')
+
+    overlay = Image.new('RGBA', base_img.size, (0, 0, 0, 0))
+    odraw = ImageDraw.Draw(overlay)
+
+    if shadow:
+        sx = box[0] + shadow_offset[0]
+        sy = box[1] + shadow_offset[1]
+        ex = box[2] + shadow_offset[0]
+        ey = box[3] + shadow_offset[1]
+        shadow_overlay = Image.new('RGBA', base_img.size, (0, 0, 0, 0))
+        sdraw = ImageDraw.Draw(shadow_overlay)
+        sdraw.rounded_rectangle([(sx, sy), (ex, ey)], radius=radius, fill=(0, 0, 0, 140))
+        shadow_overlay = shadow_overlay.filter(ImageFilter.GaussianBlur(shadow_blur))
+        base_img = Image.alpha_composite(base_img, shadow_overlay)
+
+    odraw.rounded_rectangle([box[:2], box[2:]], radius=radius, fill=fill)
+    base_img = Image.alpha_composite(base_img, overlay)
+    return base_img
+
+
+def _render_subtitle_lines(img, draw, text, font, start_y, max_width, style):
+    """Esegue il word wrap e disegna le righe di sottotitoli più gradevoli.
+    Ritorna (img, total_height_disegnata).
+    """
+    # Word wrap manuale
+    words = text.split()
+    lines = []
+    current = ""
+    for w in words:
+        test = (current + w + " ").strip()
+        bbox = draw.textbbox((0, 0), test, font=font)
+        if bbox[2] - bbox[0] <= max_width:
+            current = test + " " if not test.endswith(" ") else test
+        else:
+            if current.strip():
+                lines.append(current.strip())
+            current = w + " "
+    if current.strip():
+        lines.append(current.strip())
+
+    lines = lines[: style.get('max_lines', 5)]
+
+    total_height = 0
+    for i, line in enumerate(lines):
+        bbox = draw.textbbox((0, 0), line, font=font)
+        lw = bbox[2] - bbox[0]
+        lh = bbox[3] - bbox[1]
+        line_x = (img.width - lw) // 2
+        line_y = start_y + int(total_height)
+
+        padding = style['padding']
+        box = (line_x - padding, line_y - padding, line_x + lw + padding, line_y + lh + padding)
+        img = _draw_rounded_box_with_shadow(
+            img,
+            box,
+            style['bg_color'],
+            radius=style['radius'],
+            shadow=style['shadow'],
+            shadow_offset=style['shadow_offset'],
+            shadow_blur=style['shadow_blur']
+        )
+
+        # Dopo compositing, ricrea draw su eventuale immagine RGBA
+        draw = ImageDraw.Draw(img)
+        draw.text((line_x, line_y), line, fill=style['text_color'], font=font)
+
+        line_advance = int(lh * style['line_spacing'])
+        total_height += line_advance
+
+    return img, int(total_height)
 
 
 def download_image(url, output_path):
@@ -270,43 +369,24 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
             except:
                 font_transcript = ImageFont.load_default()
 
-            # Box per la trascrizione - posizionata più in alto, sotto il logo
+            # Posizionamento più in alto, sotto il logo
             transcript_y = central_top + int(central_height * 0.67)
-            max_width = int(width * 0.85)
 
-            # Word wrap
-            words = current_text.split()
-            lines = []
-            current_line = ""
-            for word in words:
-                test_line = current_line + word + " "
-                bbox = draw.textbbox((0, 0), test_line, font=font_transcript)
-                if bbox[2] - bbox[0] <= max_width:
-                    current_line = test_line
-                else:
-                    if current_line:
-                        lines.append(current_line.strip())
-                    current_line = word + " "
-            if current_line:
-                lines.append(current_line.strip())
+            # Stile sottotitoli e larghezza massima
+            style = _subtitle_default_style(colors)
+            max_width = int(width * style['width_ratio'])
 
-            # Disegna background semi-trasparente per leggibilità - max 4 righe
-            for i, line in enumerate(lines[:5]):  # Max 5 lines
-                bbox = draw.textbbox((0, 0), line, font=font_transcript)
-                line_width = bbox[2] - bbox[0]
-                line_height = bbox[3] - bbox[1]
-                line_x = (width - line_width) // 2
-                line_y = transcript_y + i * int(line_height * 1.4)
-
-                # Background
-                padding = 10
-                bg_color = colors['transcript_bg'] + (180,) if len(colors['transcript_bg']) == 3 else colors['transcript_bg']
-                draw.rectangle([
-                    (line_x - padding, line_y - padding),
-                    (line_x + line_width + padding, line_y + line_height + padding)
-                ], fill=bg_color)
-
-                draw.text((line_x, line_y), line, fill=colors['text'], font=font_transcript)
+            img, _ = _render_subtitle_lines(
+                img,
+                draw,
+                current_text,
+                font_transcript,
+                transcript_y,
+                max_width,
+                style
+            )
+            # Aggiorna draw nel caso l'immagine sia stata convertita in RGBA
+            draw = ImageDraw.Draw(img)
 
     return img
 
@@ -490,39 +570,20 @@ def create_square_layout(img, draw, width, height, podcast_logo_path, podcast_ti
                 font_transcript = ImageFont.load_default()
 
             transcript_y = central_bottom - int(central_height * 0.15)
-            max_width = int(width * 0.85)
+            style = _subtitle_default_style(colors)
+            style['max_lines'] = min(style.get('max_lines', 5), 3)  # per square al massimo 3 righe
+            max_width = int(width * style['width_ratio'])
 
-            words = current_text.split()
-            lines = []
-            current_line = ""
-            for word in words:
-                test_line = current_line + word + " "
-                bbox = draw.textbbox((0, 0), test_line, font=font_transcript)
-                if bbox[2] - bbox[0] <= max_width:
-                    current_line = test_line
-                else:
-                    if current_line:
-                        lines.append(current_line.strip())
-                    current_line = word + " "
-            if current_line:
-                lines.append(current_line.strip())
-
-            # Max 3 righe per square
-            for i, line in enumerate(lines[:3]):
-                bbox = draw.textbbox((0, 0), line, font=font_transcript)
-                line_width = bbox[2] - bbox[0]
-                line_height = bbox[3] - bbox[1]
-                line_x = (width - line_width) // 2
-                line_y = transcript_y + i * int(line_height * 1.3)
-
-                padding = 10
-                bg_color = colors['transcript_bg'] + (180,) if len(colors['transcript_bg']) == 3 else colors['transcript_bg']
-                draw.rectangle([
-                    (line_x - padding, line_y - padding),
-                    (line_x + line_width + padding, line_y + line_height + padding)
-                ], fill=bg_color)
-
-                draw.text((line_x, line_y), line, fill=colors['text'], font=font_transcript)
+            img, _ = _render_subtitle_lines(
+                img,
+                draw,
+                current_text,
+                font_transcript,
+                transcript_y,
+                max_width,
+                style
+            )
+            draw = ImageDraw.Draw(img)
 
     return img
 
@@ -700,39 +761,20 @@ def create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcas
                 font_transcript = ImageFont.load_default()
 
             transcript_y = central_bottom - int(central_height * 0.18)
-            max_width = int(width * 0.85)
+            style = _subtitle_default_style(colors)
+            style['max_lines'] = min(style.get('max_lines', 5), 2)  # per horizontal max 2 righe
+            max_width = int(width * style['width_ratio'])
 
-            words = current_text.split()
-            lines = []
-            current_line = ""
-            for word in words:
-                test_line = current_line + word + " "
-                bbox = draw.textbbox((0, 0), test_line, font=font_transcript)
-                if bbox[2] - bbox[0] <= max_width:
-                    current_line = test_line
-                else:
-                    if current_line:
-                        lines.append(current_line.strip())
-                    current_line = word + " "
-            if current_line:
-                lines.append(current_line.strip())
-
-            # Max 2 righe per horizontal
-            for i, line in enumerate(lines[:2]):
-                bbox = draw.textbbox((0, 0), line, font=font_transcript)
-                line_width = bbox[2] - bbox[0]
-                line_height = bbox[3] - bbox[1]
-                line_x = (width - line_width) // 2
-                line_y = transcript_y + i * int(line_height * 1.3)
-
-                padding = 12
-                bg_color = colors['transcript_bg'] + (180,) if len(colors['transcript_bg']) == 3 else colors['transcript_bg']
-                draw.rectangle([
-                    (line_x - padding, line_y - padding),
-                    (line_x + line_width + padding, line_y + line_height + padding)
-                ], fill=bg_color)
-
-                draw.text((line_x, line_y), line, fill=colors['text'], font=font_transcript)
+            img, _ = _render_subtitle_lines(
+                img,
+                draw,
+                current_text,
+                font_transcript,
+                transcript_y,
+                max_width,
+                style
+            )
+            draw = ImageDraw.Draw(img)
 
     return img
 
@@ -796,6 +838,9 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
                                      episode_title, waveform_data, current_time, transcript_chunks,
                                      audio_duration, colors, cta_text, show_progress_bar)
 
+    # Assicurati che l'array sia in RGB per MoviePy
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
     return np.array(img)
 
 
