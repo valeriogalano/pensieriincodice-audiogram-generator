@@ -103,7 +103,10 @@ python3 -m audiogram_generator [opzioni]
 
 - `--config PATH` - Path al file di configurazione YAML
 - `--feed-url URL` - URL del feed RSS del podcast (obbligatorio se non specificato nel file di configurazione)
-- `--episode N` - Numero dell'episodio da processare (1-N)
+- `--episode EPISODI` - Episodio/i da processare:
+  - Numero specifico: `5`
+  - Lista separata da virgola: `1,3,5`
+  - Tutti gli episodi: `all` o `a`
 - `--soundbites SCELTA` - Soundbites da generare:
   - Numero specifico: `1`, `2`, `3`, ecc.
   - Lista separata da virgola: `1,3,5`

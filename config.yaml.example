@@ -9,9 +9,16 @@ feed_url: https://pensieriincodice.it/podcast/index.xml
 # Default: ./output
 output_dir: ./output
 
-# Numero dell'episodio da processare (opzionale)
+# Episodi da processare (opzionale)
+# Valori possibili:
+#   - Numero specifico: 1, 2, 3, ecc.
+#   - Lista separata da virgola: "1,3,5"
+#   - Tutti gli episodi: "all" o "a"
 # Se non specificato, verrà richiesto in modalità interattiva
-# Esempio: episode: 142
+# Esempi:
+#   episode: 142
+#   episode: "1,3,5"
+#   episode: "all"
 episode: null
 
 # Soundbites da generare (opzionale)
