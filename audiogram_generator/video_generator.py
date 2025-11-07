@@ -369,8 +369,8 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
             except:
                 font_transcript = ImageFont.load_default()
 
-            # Posizionamento più in alto, sotto il logo
-            transcript_y = central_top + int(central_height * 0.67)
+            # Posizionamento più in basso per aumentare lo spazio dal logo
+            transcript_y = central_top + int(central_height * 0.74)
 
             # Stile sottotitoli e larghezza massima
             style = _subtitle_default_style(colors)
@@ -760,7 +760,8 @@ def create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcas
             except:
                 font_transcript = ImageFont.load_default()
 
-            transcript_y = central_bottom - int(central_height * 0.18)
+            # Spostato leggermente più in basso per aumentare distanza dal logo
+            transcript_y = central_bottom - int(central_height * 0.12)
             style = _subtitle_default_style(colors)
             style['max_lines'] = min(style.get('max_lines', 5), 2)  # per horizontal max 2 righe
             max_width = int(width * style['width_ratio'])
