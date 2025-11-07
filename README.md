@@ -71,7 +71,7 @@ cd podcast-audiogram-generator
 
 2. Installa le dipendenze:
 ```bash
-pip3 install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 ## Utilizzo
@@ -80,7 +80,7 @@ pip3 install -r requirements.txt
 
 Avvia l'applicazione senza argomenti per la modalità interattiva:
 ```bash
-python3 -m audiogram_generator
+python -m audiogram_generator
 ```
 
 Il tool ti guiderà attraverso:
@@ -96,7 +96,7 @@ Il tool ti guiderà attraverso:
 Per automatizzare il processo, è possibile specificare tutti i parametri tramite argomenti:
 
 ```bash
-python3 -m audiogram_generator [opzioni]
+python -m audiogram_generator [opzioni]
 ```
 
 **Opzioni disponibili:**
@@ -120,22 +120,22 @@ Gli argomenti da riga di comando hanno precedenza sul file di configurazione, ch
 
 ```bash
 # Genera tutti i soundbites dell'episodio 142
-python3 -m audiogram_generator --episode 142 --soundbites all
+python -m audiogram_generator --episode 142 --soundbites all
 
 # Genera solo i soundbites 1 e 3 dell'episodio 100
-python3 -m audiogram_generator --episode 100 --soundbites 1,3
+python -m audiogram_generator --episode 100 --soundbites 1,3
 
 # Genera il soundbite 2 dell'episodio 50 in una directory custom
-python3 -m audiogram_generator --episode 50 --soundbites 2 --output-dir ~/videos
+python -m audiogram_generator --episode 50 --soundbites 2 --output-dir ~/videos
 
 # Usa un feed RSS personalizzato
-python3 -m audiogram_generator --feed-url https://esempio.com/feed.xml --episode 5 --soundbites all
+python -m audiogram_generator --feed-url https://esempio.com/feed.xml --episode 5 --soundbites all
 
 # Usa un file di configurazione
-python3 -m audiogram_generator --config config.yaml
+python -m audiogram_generator --config config.yaml
 
 # Usa un file di configurazione e sovrascrivi alcuni parametri
-python3 -m audiogram_generator --config config.yaml --episode 150
+python -m audiogram_generator --config config.yaml --episode 150
 ```
 
 ### File di configurazione
@@ -176,7 +176,7 @@ formats:
 
 3. Usa il file di configurazione:
 ```bash
-python3 -m audiogram_generator --config config.yaml
+python -m audiogram_generator --config config.yaml
 ```
 
 #### Personalizzazione colori e formati
@@ -279,21 +279,21 @@ Il progetto include una suite di test per verificare il corretto funzionamento d
 
 Per eseguire tutti i test:
 ```bash
-python3 -m unittest discover tests
+python -m unittest discover tests
 ```
 
 Per eseguire i test di un modulo specifico:
 ```bash
 # Test del modulo di configurazione
-python3 -m unittest tests.test_config -v
+python -m unittest tests.test_config -v
 
 # Test del generatore di audiogrammi
-python3 -m unittest tests.test_generator -v
+python -m unittest tests.test_generator -v
 ```
 
 Per eseguire un singolo test:
 ```bash
-python3 -m unittest tests.test_config.TestConfig.test_configuration_precedence -v
+python -m unittest tests.test_config.TestConfig.test_configuration_precedence -v
 ```
 
 ### Test disponibili
