@@ -353,7 +353,8 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
                 bar_amplitude = current_amplitude * sensitivities[i] * center_boost
 
                 # Altezza minima e massima (relativa all'altezza disponibile)
-                min_height = int(avail_height * 0.12)
+                # Altezza minima ridotta per avere barre più sottili quando non c'è suono
+                min_height = int(avail_height * 0.03)
                 max_height = int(avail_height * 0.80)
                 bar_height = int(min_height + (bar_amplitude * (max_height - min_height))) if max_height > min_height else min_height
                 bar_height = max(min_height, min(bar_height, max_height))
@@ -688,7 +689,8 @@ def create_square_layout(img, draw, width, height, podcast_logo_path, podcast_ti
                 center_boost = 1.0 + (1.0 - distance_from_center / center_idx) * 0.4 if center_idx > 0 else 1.0
                 bar_amplitude = current_amplitude * sensitivities[i] * center_boost
 
-                min_height = int(central_height * 0.12)
+                # Altezza minima ridotta per avere barre più sottili quando non c'è suono
+                min_height = int(central_height * 0.03)
                 max_height = int(central_height * 0.70)
                 bar_height = int(min_height + (bar_amplitude * (max_height - min_height)))
                 bar_height = max(min_height, min(bar_height, max_height))
@@ -880,7 +882,8 @@ def create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcas
                 center_boost = 1.0 + (1.0 - distance_from_center / center_idx) * 0.4 if center_idx > 0 else 1.0
                 bar_amplitude = current_amplitude * sensitivities[i] * center_boost
 
-                min_height = int(central_height * 0.15)
+                # Altezza minima ridotta per avere barre più sottili quando non c'è suono
+                min_height = int(central_height * 0.03)
                 max_height = int(central_height * 0.70)
                 bar_height = int(min_height + (bar_amplitude * (max_height - min_height)))
                 bar_height = max(min_height, min(bar_height, max_height))
