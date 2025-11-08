@@ -301,18 +301,18 @@ ep{episode_number}_sb{soundbite_number}_{format}.mp4
 
 **Social caption file:**
 ```
-ep{episode_number}_sb{soundbite_number}_caption.md
+ep{episode_number}_sb{soundbite_number}_caption.txt
 ```
 
 Example for soundbite 1 of episode 142:
 - `ep142_sb1_vertical.mp4` — Vertical video for Reels, Stories, Shorts, TikTok
 - `ep142_sb1_square.mp4` — Square video for Instagram, Twitter/X, Mastodon
 - `ep142_sb1_horizontal.mp4` — Horizontal video for YouTube
-- `ep142_sb1_caption.md` — Caption file ready for social posting
+- `ep142_sb1_caption.txt` — Caption file ready for social posting
 
 #### Caption file
 
-Each `_caption.md` file contains:
+Each `_caption.txt` file contains:
 - Episode title and number
 - Soundbite title
 - Full transcript text

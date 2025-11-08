@@ -502,11 +502,11 @@ def process_one_episode(selected, podcast_info, colors, formats_config, config_h
 
                         print(f"✓ {format_name}: {output_path}")
 
-                    # Genera file caption .md
+                    # Genera file caption .txt
                     print("Generazione file caption...")
                     caption_path = os.path.join(
                         output_dir,
-                        f"ep{selected['number']}_sb{soundbite_num}_caption.md"
+                        f"ep{selected['number']}_sb{soundbite_num}_caption.txt"
                     )
                     generate_caption_file(
                         caption_path,
@@ -625,11 +625,11 @@ def process_one_episode(selected, podcast_info, colors, formats_config, config_h
 
                             print(f"✓ {format_name}: {output_path}")
 
-                        # Genera file caption .md
+                        # Genera file caption .txt
                         print("Generazione file caption...")
                         caption_path = os.path.join(
                             output_dir,
-                            f"ep{selected['number']}_sb{soundbite_num}_caption.md"
+                            f"ep{selected['number']}_sb{soundbite_num}_caption.txt"
                         )
                         generate_caption_file(
                             caption_path,
@@ -924,11 +924,11 @@ def main():
 
                         print(f"✓ {format_name}: {output_path}")
 
-                    # Genera file caption .md
+                    # Genera file caption .txt
                     print("Generazione file caption...")
                     caption_path = os.path.join(
                         output_dir,
-                        f"ep{selected['number']}_sb{soundbite_num}_caption.md"
+                        f"ep{selected['number']}_sb{soundbite_num}_caption.txt"
                     )
                     generate_caption_file(
                         caption_path,
@@ -1063,11 +1063,11 @@ def main():
 
                             print(f"✓ {format_name}: {output_path}")
 
-                        # Genera file caption .md
+                        # Genera file caption .txt
                         print("Generazione file caption...")
                         caption_path = os.path.join(
                             output_dir,
-                            f"ep{selected['number']}_sb{soundbite_num}_caption.md"
+                            f"ep{selected['number']}_sb{soundbite_num}_caption.txt"
                         )
                         generate_caption_file(
                             caption_path,
