@@ -171,6 +171,48 @@ def _render_subtitle_lines(img, draw, text, font, start_y, max_width, style, x_b
     return img, int(total_height)
 
 
+def _draw_text_with_stroke(draw, position, text, font, fill, stroke_width=2, stroke_fill=(30, 30, 30)):
+    """Disegna testo con un sottile contorno per aumentare il contrasto.
+    Usa i parametri stroke nativi di PIL se disponibili.
+    """
+    try:
+        draw.text(position, text, font=font, fill=fill, stroke_width=stroke_width, stroke_fill=stroke_fill)
+    except TypeError:
+        # Fallback per versioni PIL molto vecchie: disegna il contorno manuale
+        x, y = position
+        for dx, dy in [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(1,1),(-1,1),(1,-1)]:
+            draw.text((x+dx, y+dy), text, font=font, fill=stroke_fill)
+        draw.text(position, text, font=font, fill=fill)
+
+
+def _draw_pill_with_text(img, draw, text, font, center_x, y, padding_x=24, padding_y=12,
+                         pill_color=(255, 255, 255, 230), radius=22, shadow=True,
+                         text_color=(0, 0, 0), stroke_width=0, stroke_fill=(30, 30, 30)):
+    """Disegna una 'pill' arrotondata con ombra e testo centrato.
+    Ritorna (img, text_x, text_y) per eventuali usi successivi.
+    """
+    bb = draw.textbbox((0, 0), text, font=font)
+    tw = bb[2] - bb[0]
+    th = bb[3] - bb[1]
+
+    x1 = int(center_x - (tw // 2) - padding_x)
+    y1 = int(y - padding_y)
+    x2 = int(center_x + (tw // 2) + padding_x)
+    y2 = int(y + th + padding_y)
+
+    # Disegna pill con ombra su overlay
+    img = _draw_rounded_box_with_shadow(img, (x1, y1, x2, y2), pill_color, radius=radius, shadow=shadow, shadow_offset=(0, 4), shadow_blur=10)
+    draw = ImageDraw.Draw(img)
+
+    text_x = int(center_x - tw // 2)
+    text_y = int(y)
+    if stroke_width > 0:
+        _draw_text_with_stroke(draw, (text_x, text_y), text, font, text_color, stroke_width=stroke_width, stroke_fill=stroke_fill)
+    else:
+        draw.text((text_x, text_y), text, font=font, fill=text_color)
+    return img, text_x, text_y
+
+
 def download_image(url, output_path):
     """Scarica un'immagine da URL"""
     ssl_context = ssl.create_default_context()
@@ -316,7 +358,7 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
         line_x_center = (width - line_width) // 2
         line_x = max(safe_left, min(line_x_center, safe_right - line_width))
         line_y = start_y + i * int(line_height * 1.2)
-        draw.text((line_x, line_y), line, fill=colors['text'], font=font_header)
+        _draw_text_with_stroke(draw, (line_x, line_y), line, font_header, colors['text'], stroke_width=3)
 
     # Area centrale (54% altezza) - ridotta per compensare l'header più grande
     central_top = header_top + header_height
@@ -437,7 +479,7 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
     # Evita di sforare il bordo inferiore sicuro
     if title_y + title_height > safe_bottom:
         title_y = max(safe_top, safe_bottom - title_height - int(footer_height * 0.05))
-    draw.text((title_x, title_y), podcast_title, fill=colors['text'], font=font_title)
+    _draw_text_with_stroke(draw, (title_x, title_y), podcast_title, font_title, colors['text'], stroke_width=3)
 
     # Call-to-action sotto il titolo del podcast (rispetta SEMPRE la safe area con word-wrap)
     if cta_text:  # Mostra solo se specificato
@@ -543,12 +585,23 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
 
         # Disegna le righe centrate entro la safe area
         for i, line in enumerate(lines):
+            # Calcola padding dinamico per rispettare la safe area includendo la pill
             bb = draw.textbbox((0, 0), line, font=font_cta)
             lw = bb[2] - bb[0]
-            line_x_center = (width - lw) // 2
-            line_x = max(safe_left, min(line_x_center, safe_right - lw))
+            max_total_w = max(50, safe_right - safe_left)
+            # padding laterale: spazio rimanente/2 meno qualche px di margine
+            pad_x = max(14, min(40, (max_total_w - lw) // 2 - 6))
+            center_x = (safe_left + safe_right) // 2
             line_y = cta_y_start + int(i * line_h * spacing)
-            draw.text((line_x, line_y), line, fill=colors['text'], font=font_cta)
+            # Disegna pill bianca con testo nero per contrasto su arancione
+            pill_color = (255, 255, 255, 235)
+            text_color = (10, 10, 10)
+            img, _, _ = _draw_pill_with_text(
+                img, draw, line, font_cta, center_x, line_y,
+                padding_x=pad_x, padding_y=8, pill_color=pill_color,
+                radius=20, shadow=True, text_color=text_color, stroke_width=0
+            )
+            draw = ImageDraw.Draw(img)
 
     # Trascrizione in tempo reale (sopra il footer, nell'area centrale bassa)
     if transcript_chunks:
@@ -684,7 +737,7 @@ def create_square_layout(img, draw, width, height, podcast_logo_path, podcast_ti
         line_width = bbox[2] - bbox[0]
         line_x = (width - line_width) // 2
         line_y = start_y + i * int(line_height * 1.2)
-        draw.text((line_x, line_y), line, fill=colors['text'], font=font_header)
+        _draw_text_with_stroke(draw, (line_x, line_y), line, font_header, colors['text'], stroke_width=3)
 
     # Area centrale (66% altezza) - più grande per square
     central_top = header_top + header_height
@@ -759,7 +812,7 @@ def create_square_layout(img, draw, width, height, podcast_logo_path, podcast_ti
     title_height = bbox[3] - bbox[1]
     title_x = (width - title_width) // 2
     title_y = footer_top + int(footer_height * 0.20)
-    draw.text((title_x, title_y), podcast_title, fill=colors['text'], font=font_title)
+    _draw_text_with_stroke(draw, (title_x, title_y), podcast_title, font_title, colors['text'], stroke_width=3)
 
     # Call-to-action sotto il titolo - font ingrandito
     if cta_text:
@@ -768,11 +821,17 @@ def create_square_layout(img, draw, width, height, podcast_logo_path, podcast_ti
         except:
             font_cta = ImageFont.load_default()
 
-        bbox = draw.textbbox((0, 0), cta_text, font=font_cta)
-        cta_width = bbox[2] - bbox[0]
-        cta_x = (width - cta_width) // 2
+        # Pill arrotondata bianca con testo scuro per massimo contrasto
         cta_y = title_y + title_height + int(footer_height * 0.15)
-        draw.text((cta_x, cta_y), cta_text, fill=colors['text'], font=font_cta)
+        center_x = width // 2
+        pill_color = (255, 255, 255, 235)
+        text_color = (10, 10, 10)
+        img, _, _ = _draw_pill_with_text(
+            img, draw, cta_text, font_cta, center_x, cta_y,
+            padding_x=28, padding_y=10, pill_color=pill_color, radius=22, shadow=True,
+            text_color=text_color, stroke_width=0
+        )
+        draw = ImageDraw.Draw(img)
 
     # Trascrizione in basso nell'area centrale
     if transcript_chunks:
@@ -878,7 +937,7 @@ def create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcas
         line_width = bbox[2] - bbox[0]
         line_x = (width - line_width) // 2
         line_y = start_y + i * int(line_height * 1.2)
-        draw.text((line_x, line_y), line, fill=colors['text'], font=font_header)
+        _draw_text_with_stroke(draw, (line_x, line_y), line, font_header, colors['text'], stroke_width=3)
 
     # Area centrale (68% altezza)
     central_top = header_top + header_height
@@ -952,7 +1011,7 @@ def create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcas
     title_height = bbox[3] - bbox[1]
     title_x = (width - title_width) // 2
     title_y = footer_top + int(footer_height * 0.25)
-    draw.text((title_x, title_y), podcast_title, fill=colors['text'], font=font_title)
+    _draw_text_with_stroke(draw, (title_x, title_y), podcast_title, font_title, colors['text'], stroke_width=3)
 
     # Call-to-action
     if cta_text:
@@ -961,11 +1020,17 @@ def create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcas
         except:
             font_cta = ImageFont.load_default()
 
-        bbox = draw.textbbox((0, 0), cta_text, font=font_cta)
-        cta_width = bbox[2] - bbox[0]
-        cta_x = (width - cta_width) // 2
+        # CTA come pill arrotondata per coerenza con gli altri formati
         cta_y = title_y + title_height + int(footer_height * 0.15)
-        draw.text((cta_x, cta_y), cta_text, fill=colors['text'], font=font_cta)
+        center_x = width // 2
+        pill_color = (255, 255, 255, 235)
+        text_color = (10, 10, 10)
+        img, _, _ = _draw_pill_with_text(
+            img, draw, cta_text, font_cta, center_x, cta_y,
+            padding_x=28, padding_y=10, pill_color=pill_color, radius=22, shadow=True,
+            text_color=text_color, stroke_width=0
+        )
+        draw = ImageDraw.Draw(img)
 
     # Trascrizione in basso nell'area centrale
     if transcript_chunks:
