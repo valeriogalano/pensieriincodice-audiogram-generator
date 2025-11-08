@@ -28,6 +28,10 @@ COLOR_BEIGE = (235, 213, 197)
 COLOR_WHITE = (255, 255, 255)
 COLOR_BLACK = (50, 50, 50)
 
+# Spaziatura tra le righe del titolo episodio (header)
+# Aumentata per migliorare la leggibilità nelle intestazioni multi‑riga
+HEADER_LINE_SPACING = 1.45
+
 
 def _subtitle_default_style(colors):
     """Ritorna lo stile predefinito per i sottotitoli (trascrizione)."""
@@ -348,7 +352,7 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
     # Disegna le righe centrate, posizionate più in basso
     bbox_sample = draw.textbbox((0, 0), "Test", font=font_header)
     line_height = bbox_sample[3] - bbox_sample[1]
-    total_height = len(lines) * line_height * 1.2
+    total_height = int(len(lines) * line_height * HEADER_LINE_SPACING)
     start_y = header_top + int(header_height * 0.65) - int(total_height // 2)
 
     for i, line in enumerate(lines):
@@ -357,7 +361,7 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
         # Centra rispettando i limiti orizzontali della safe area
         line_x_center = (width - line_width) // 2
         line_x = max(safe_left, min(line_x_center, safe_right - line_width))
-        line_y = start_y + i * int(line_height * 1.2)
+        line_y = start_y + int(i * line_height * HEADER_LINE_SPACING)
         _draw_text_with_stroke(draw, (line_x, line_y), line, font_header, colors['text'], stroke_width=3)
 
     # Area centrale (54% altezza) - ridotta per compensare l'header più grande
@@ -729,16 +733,16 @@ def create_square_layout(img, draw, width, height, podcast_logo_path, podcast_ti
     # Disegna le righe centrate
     bbox_sample = draw.textbbox((0, 0), "Test", font=font_header)
     line_height = bbox_sample[3] - bbox_sample[1]
-    total_height = len(lines) * line_height * 1.2
+    total_height = int(len(lines) * line_height * HEADER_LINE_SPACING)
     start_y = header_top + int(header_height * 0.50) - int(total_height // 2)
 
     for i, line in enumerate(lines):
         bbox = draw.textbbox((0, 0), line, font=font_header)
         line_width = bbox[2] - bbox[0]
         line_x = (width - line_width) // 2
-        line_y = start_y + i * int(line_height * 1.2)
+        line_y = start_y + int(i * line_height * HEADER_LINE_SPACING)
         _draw_text_with_stroke(draw, (line_x, line_y), line, font_header, colors['text'], stroke_width=3)
-
+    
     # Area centrale (66% altezza) - più grande per square
     central_top = header_top + header_height
     central_height = int(height * 0.66)
@@ -929,14 +933,14 @@ def create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcas
 
     bbox_sample = draw.textbbox((0, 0), "Test", font=font_header)
     line_height = bbox_sample[3] - bbox_sample[1]
-    total_height = len(lines) * line_height * 1.2
+    total_height = int(len(lines) * line_height * HEADER_LINE_SPACING)
     start_y = header_top + int(header_height * 0.50) - int(total_height // 2)
 
     for i, line in enumerate(lines):
         bbox = draw.textbbox((0, 0), line, font=font_header)
         line_width = bbox[2] - bbox[0]
         line_x = (width - line_width) // 2
-        line_y = start_y + i * int(line_height * 1.2)
+        line_y = start_y + i * int(line_height * 1.35)
         _draw_text_with_stroke(draw, (line_x, line_y), line, font_header, colors['text'], stroke_width=3)
 
     # Area centrale (68% altezza)
