@@ -225,10 +225,10 @@ def generate_caption_file(output_path, episode_number, episode_title, episode_li
                           soundbite_title, transcript_text, podcast_keywords=None,
                           episode_keywords=None, config_hashtags=None):
     """
-    Genera un file .md con la caption per il post social
+    Genera un file .txt con la caption per il post social (testo semplice, senza markdown)
 
     Args:
-        output_path: Path del file .md da creare
+        output_path: Path del file .txt da creare
         episode_number: Numero dell'episodio
         episode_title: Titolo dell'episodio
         episode_link: Link all'episodio
@@ -267,24 +267,23 @@ def generate_caption_file(output_path, episode_number, episode_title, episode_li
     # Formatta hashtag con il simbolo #
     hashtag_string = ' '.join([f'#{tag}' for tag in unique_hashtags]) if unique_hashtags else '#podcast'
 
-    caption = f"""# Social Media Caption
+    caption = (
+        f"Episodio {episode_number}: {episode_title}\n\n"
+        f"{soundbite_title}\n\n"
+        f"{transcript_text}\n\n"
+        f"Ascolta l'episodio completo: {episode_link}\n\n"
+        f"Hashtag suggeriti: {hashtag_string}\n"
+    )
 
-## Episode {episode_number}: {episode_title}
+    # Se il path richiesto termina con .md, convertilo a .txt
+    actual_output_path = output_path
+    if output_path.lower().endswith('.md'):
+        actual_output_path = output_path[:-3] + 'txt'
 
-{soundbite_title}
-
-{transcript_text}
-
-🎧 Listen to the full episode: {episode_link}
-
----
-
-**Suggested hashtags:**
-{hashtag_string}
-"""
-
-    with open(output_path, 'w', encoding='utf-8') as f:
+    with open(actual_output_path, 'w', encoding='utf-8') as f:
         f.write(caption)
+
+    return actual_output_path
 
 
 def parse_episode_selection(value, max_episode: int) -> List[int]:
