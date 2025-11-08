@@ -275,15 +275,8 @@ def generate_caption_file(output_path, episode_number, episode_title, episode_li
         f"Hashtag suggeriti: {hashtag_string}\n"
     )
 
-    # Se il path richiesto termina con .md, convertilo a .txt
-    actual_output_path = output_path
-    if output_path.lower().endswith('.md'):
-        actual_output_path = output_path[:-3] + 'txt'
-
-    with open(actual_output_path, 'w', encoding='utf-8') as f:
+    with open(output_path, 'w', encoding='utf-8') as f:
         f.write(caption)
-
-    return actual_output_path
 
 
 def parse_episode_selection(value, max_episode: int) -> List[int]:
