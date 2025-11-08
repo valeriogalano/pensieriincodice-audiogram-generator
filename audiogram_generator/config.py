@@ -15,6 +15,7 @@ class Config:
         'episode': None,
         'soundbites': None,
         'dry_run': False,
+        'show_subtitles': True,
         'colors': {
             'primary': [242, 101, 34],      # Orange (header, footer, bars)
             'background': [235, 213, 197],  # Beige (central background)

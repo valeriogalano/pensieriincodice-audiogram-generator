@@ -347,7 +347,7 @@ def parse_soundbite_selection(value, max_soundbites: int) -> List[int]:
     raise ValueError('Formato soundbite non supportato')
 
 
-def process_one_episode(selected, podcast_info, colors, formats_config, config_hashtags, cta_text, show_progress_bar, output_dir, soundbites_choice, dry_run=False):
+def process_one_episode(selected, podcast_info, colors, formats_config, config_hashtags, cta_text, show_progress_bar, show_subtitles, output_dir, soundbites_choice, dry_run=False):
     print(f"\nEpisodio {selected['number']}: {selected['title']}")
     if selected['audio_url']:
         print(f"Audio: {selected['audio_url']}")
@@ -669,6 +669,11 @@ def main():
     parser.add_argument('--soundbites', type=str, help='Soundbites to generate: specific number, "all" for all, or comma-separated list (e.g., 1,3,5)')
     parser.add_argument('--output-dir', type=str, help='Output directory for generated files')
     parser.add_argument('--dry-run', action='store_true', help='Stampa solo intervalli e sottotitoli dei soundbite senza generare file')
+    # Sottotitoli on/off
+    subs_group = parser.add_mutually_exclusive_group()
+    subs_group.add_argument('--show-subtitles', dest='show_subtitles', action='store_true', help='Abilita la visualizzazione dei sottotitoli nel video')
+    subs_group.add_argument('--no-subtitles', dest='show_subtitles', action='store_false', help='Disabilita la visualizzazione dei sottotitoli nel video')
+    parser.set_defaults(show_subtitles=None)
 
     args = parser.parse_args()
 
@@ -681,7 +686,8 @@ def main():
         'episode': args.episode,
         'soundbites': args.soundbites,
         'output_dir': args.output_dir,
-        'dry_run': args.dry_run
+        'dry_run': args.dry_run,
+        'show_subtitles': args.show_subtitles
     })
 
     # Usa argomenti o richiedi input interattivo
@@ -696,6 +702,7 @@ def main():
     config_hashtags = config.get('hashtags', [])
     cta_text = config.get('cta_text')
     show_progress_bar = config.get('show_progress_bar', False)
+    show_subtitles = config.get('show_subtitles', True)
     dry_run = config.get('dry_run', False)
 
     # Chiedi feed_url interattivamente se non specificato
@@ -773,6 +780,7 @@ def main():
             config_hashtags=config_hashtags,
             cta_text=cta_text,
             show_progress_bar=show_progress_bar,
+            show_subtitles=show_subtitles,
             output_dir=output_dir,
             soundbites_choice=soundbites_choice,
             dry_run=dry_run

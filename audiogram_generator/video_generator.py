@@ -1062,7 +1062,7 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
 
 def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
                       podcast_title, episode_title, transcript_chunks, duration,
-                      formats=None, colors=None, cta_text=None, show_progress_bar=False):
+                      formats=None, colors=None, cta_text=None, show_progress_bar=False, show_subtitles=True):
     """
     Genera un video audiogram completo
 
@@ -1104,6 +1104,8 @@ def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
         logo_img = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
 
     print(f"  - Generazione frame video...")
+    # Prepara chunks sottotitoli in base al flag
+    chunks_for_render = transcript_chunks if show_subtitles else []
     # Funzione per generare frame
     def make_frame(t):
         return create_audiogram_frame(
@@ -1113,7 +1115,7 @@ def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
             episode_title,
             waveform_data,
             t,
-            transcript_chunks,
+            chunks_for_render,
             duration,
             formats,
             colors,

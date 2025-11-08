@@ -21,6 +21,7 @@ Automatic audiogram generator for podcasts. The tool downloads episodes from an 
 - **Audio processing** with precise segment extraction
 - **Interactive CLI** for selecting episodes and soundbites
 - **Dry-run mode** to preview start/end times and subtitles without generating files
+- **Subtitles toggle**: enable/disable on-video subtitles via CLI or config
 
 ## Project structure
 
@@ -114,6 +115,8 @@ python -m audiogram_generator [options]
   - All soundbites: `all` or `a`
 - `--output-dir PATH` — Output directory for generated videos (default: `./output`)
 - `--dry-run` — Print start/end time and subtitles for selected soundbites without generating files
+- `--show-subtitles` — Force-enable on-video subtitles (overrides config)
+- `--no-subtitles` — Disable on-video subtitles (overrides config)
 
 **Precedence notes:**
 Command-line arguments take precedence over the configuration file, which in turn takes precedence over default values.
@@ -181,6 +184,28 @@ Preview soundbite details without generating any files. This is useful to verify
   <text joined from SRT segments in range>
   ```
 
+### Subtitles on/off
+
+You can enable or disable on-video subtitles either via CLI flags or the YAML config.
+
+- CLI flags (override config):
+  - Disable subtitles:
+    ```bash
+    python -m audiogram_generator --no-subtitles
+    ```
+  - Enable subtitles explicitly (useful if YAML has them disabled):
+    ```bash
+    python -m audiogram_generator --show-subtitles
+    ```
+
+- YAML configuration:
+  Add the `show_subtitles` key to your `config.yaml` (default is `true`):
+  ```yaml
+  show_subtitles: false
+  ```
+
+Note: Command-line flags always take precedence over the YAML configuration.
+
 ### Configuration file
 
 You can create a YAML configuration file to define parameters permanently:
@@ -199,6 +224,8 @@ episode: 142
 soundbites: "all"
 # Optional: preview timings and subtitles without generating files
 dry_run: false
+# Show or hide on-video subtitles (default: true)
+show_subtitles: true
 
 # Customize colors (optional)
 colors:
