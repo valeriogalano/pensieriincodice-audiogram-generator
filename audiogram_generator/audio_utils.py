@@ -1,5 +1,5 @@
 """
-Utilità per scaricare e processare audio
+Utilities to download and process audio
 """
 import os
 import ssl
@@ -8,7 +8,7 @@ from pydub import AudioSegment
 
 
 def download_audio(url, output_path):
-    """Scarica un file audio da URL"""
+    """Download an audio file from a URL"""
     ssl_context = ssl.create_default_context()
     ssl_context.check_hostname = False
     ssl_context.verify_mode = ssl.CERT_NONE

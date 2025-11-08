@@ -1,5 +1,5 @@
 """
-Entry point per eseguire il package come modulo
+Entry point to run the package as a module
 """
 from .cli import main
 

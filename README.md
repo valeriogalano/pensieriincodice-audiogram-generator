@@ -1,52 +1,52 @@
 # Podcast Audiogram Generator
 
-Generatore automatico di audiogrammi per podcast. Il tool scarica episodi dal feed RSS, estrae i soundbites con le relative trascrizioni, e genera video audiogrammi ottimizzati per tutte le principali piattaforme social.
+Automatic audiogram generator for podcasts. The tool downloads episodes from an RSS feed, extracts soundbites with their transcripts, and generates audiogram videos optimized for major social platforms.
 
-## Caratteristiche
+## Features
 
-- **Parsing automatico del feed RSS** del podcast con estrazione di:
-  - Informazioni episodi (titolo, descrizione, audio)
-  - Soundbites con timing preciso
-  - Trascrizioni sincronizzate (formato SRT)
-  - Locandina del podcast
+- **Automatic RSS feed parsing** with extraction of:
+  - Episode details (title, description, audio)
+  - Soundbites with precise timing
+  - Synchronized transcripts (SRT format)
+  - Podcast cover art
 
-- **Generazione audiogrammi** in tre formati ottimizzati per social media:
-  - **Verticale 9:16** (1080x1920) - Instagram Reels/Stories, YouTube Shorts, TikTok
-  - **Quadrato 1:1** (1080x1080) - Instagram Post, Twitter/X, Mastodon, LinkedIn
-  - **Orizzontale 16:9** (1920x1080) - YouTube, Twitter/X orizzontale
+- **Audiogram generation** in three formats optimized for social media:
+  - **Vertical 9:16** (1080x1920) — Instagram Reels/Stories, YouTube Shorts, TikTok
+  - **Square 1:1** (1080x1080) — Instagram Post, Twitter/X, Mastodon, LinkedIn
+  - **Horizontal 16:9** (1920x1080) — YouTube, horizontal Twitter/X
 
-- **Trascrizione in tempo reale** sincronizzata con l'audio
-- **Waveform animata** che progredisce con l'audio
-- **Layout personalizzato** con colori e branding del podcast
-- **Elaborazione audio** con estrazione precisa dei segmenti
-- **Interfaccia CLI interattiva** per la selezione di episodi e soundbites
+- **Live transcript** synchronized with audio
+- **Animated waveform** that progresses with the audio
+- **Customizable layout** with podcast colors and branding
+- **Audio processing** with precise segment extraction
+- **Interactive CLI** for selecting episodes and soundbites
 
-## Struttura del progetto
+## Project structure
 
 ```
 podcast-audiogram-generator/
-├── audiogram_generator/        # Modulo principale
+├── audiogram_generator/        # Main module
 │   ├── __init__.py
 │   ├── __main__.py            # Entry point
-│   ├── cli.py                 # Interfaccia a riga di comando
-│   ├── config.py              # Gestione configurazione
-│   ├── audio_utils.py         # Download ed estrazione audio
-│   └── video_generator.py     # Generazione video audiogrammi
-├── tests/                      # Test
+│   ├── cli.py                 # Command-line interface
+│   ├── config.py              # Configuration management
+│   ├── audio_utils.py         # Audio download and extraction
+│   └── video_generator.py     # Audiogram video generation
+├── tests/                      # Tests
 │   ├── __init__.py
-│   ├── test_config.py         # Test modulo configurazione
-│   └── test_generator.py      # Test generatore audiogrammi
-├── output/                     # Directory di output video generati
-├── requirements.txt            # Dipendenze Python
-└── setup.py                    # Setup del progetto
+│   ├── test_config.py         # Configuration module tests
+│   └── test_generator.py      # Audiogram generator tests
+├── output/                     # Output directory for generated videos
+├── requirements.txt            # Python dependencies
+└── setup.py                    # Project setup
 ```
 
-## Requisiti
+## Requirements
 
 - Python >= 3.8
-- FFmpeg (per l'elaborazione audio/video)
+- FFmpeg (for audio/video processing)
 
-### Installazione FFmpeg
+### FFmpeg installation
 
 **macOS:**
 ```bash
@@ -59,110 +59,110 @@ sudo apt-get install ffmpeg
 ```
 
 **Windows:**
-Scarica da [ffmpeg.org](https://ffmpeg.org/download.html)
+Download from [ffmpeg.org](https://ffmpeg.org/download.html)
 
-## Installazione
+## Installation
 
-1. Clona il repository:
+1. Clone the repository:
 ```bash
 git clone https://github.com/vgalano/podcast-audiogram-generator.git
 cd podcast-audiogram-generator
 ```
 
-2. Installa le dipendenze:
+2. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-## Utilizzo
+## Usage
 
-### Modalità interattiva
+### Interactive mode
 
-Avvia l'applicazione senza argomenti per la modalità interattiva:
+Launch the application without arguments for interactive mode:
 ```bash
 python -m audiogram_generator
 ```
 
-Il tool ti guiderà attraverso:
-1. Visualizzazione delle informazioni del podcast (titolo e locandina)
-2. Elenco di tutti gli episodi disponibili (dal primo all'ultimo)
-3. Selezione dell'episodio desiderato
-4. Visualizzazione dei soundbites disponibili con le relative trascrizioni
-5. Selezione del soundbite da convertire (singolo, multiplo o tutti)
-6. Generazione automatica di tre video audiogrammi in formati diversi
+The tool will guide you through:
+1. Showing podcast info (title and cover)
+2. Listing all available episodes (from oldest to newest)
+3. Selecting the desired episode(s)
+4. Showing available soundbites with their transcripts
+5. Selecting which soundbite(s) to convert (single, multiple, or all)
+6. Automatically generating three audiogram videos in different formats
 
-### Modalità riga di comando
+### Command-line mode
 
-Per automatizzare il processo, è possibile specificare tutti i parametri tramite argomenti:
+To automate the process, you can pass all parameters as arguments:
 
 ```bash
-python -m audiogram_generator [opzioni]
+python -m audiogram_generator [options]
 ```
 
-**Opzioni disponibili:**
+**Available options:**
 
-- `--config PATH` - Path al file di configurazione YAML
-- `--feed-url URL` - URL del feed RSS del podcast (obbligatorio se non specificato nel file di configurazione)
-- `--episode EPISODI` - Episodio/i da processare:
-  - Numero specifico: `5`
-  - Lista separata da virgola: `1,3,5`
-  - Tutti gli episodi: `all` o `a`
-- `--soundbites SCELTA` - Soundbites da generare:
-  - Numero specifico: `1`, `2`, `3`, ecc.
-  - Lista separata da virgola: `1,3,5`
-  - Tutti i soundbites: `all` o `a`
-- `--output-dir PATH` - Directory di output per i video generati (default: `./output`)
+- `--config PATH` — Path to the YAML configuration file
+- `--feed-url URL` — URL of the podcast RSS feed (required if not set in the config file)
+- `--episode EPISODES` — Episode(s) to process:
+  - Specific number: `5`
+  - Comma-separated list: `1,3,5`
+  - All episodes: `all` or `a`
+- `--soundbites CHOICE` — Soundbites to generate:
+  - Specific number: `1`, `2`, `3`, etc.
+  - Comma-separated list: `1,3,5`
+  - All soundbites: `all` or `a`
+- `--output-dir PATH` — Output directory for generated videos (default: `./output`)
 
-**Note sulla precedenza:**
-Gli argomenti da riga di comando hanno precedenza sul file di configurazione, che a sua volta ha precedenza sui valori di default.
+**Precedence notes:**
+Command-line arguments take precedence over the configuration file, which in turn takes precedence over default values.
 
-**Esempi:**
+**Examples:**
 
 ```bash
-# Genera tutti i soundbites dell'episodio 142
+# Generate all soundbites for episode 142
 python -m audiogram_generator --episode 142 --soundbites all
 
-# Genera solo i soundbites 1 e 3 dell'episodio 100
+# Generate only soundbites 1 and 3 for episode 100
 python -m audiogram_generator --episode 100 --soundbites 1,3
 
-# Genera il soundbite 2 dell'episodio 50 in una directory custom
+# Generate soundbite 2 for episode 50 into a custom directory
 python -m audiogram_generator --episode 50 --soundbites 2 --output-dir ~/videos
 
-# Usa un feed RSS personalizzato
-python -m audiogram_generator --feed-url https://esempio.com/feed.xml --episode 5 --soundbites all
+# Use a custom RSS feed
+python -m audiogram_generator --feed-url https://example.com/feed.xml --episode 5 --soundbites all
 
-# Usa un file di configurazione
+# Use a configuration file
 python -m audiogram_generator --config config.yaml
 
-# Usa un file di configurazione e sovrascrivi alcuni parametri
+# Use a configuration file and override some parameters
 python -m audiogram_generator --config config.yaml --episode 150
 ```
 
-### File di configurazione
+### Configuration file
 
-È possibile creare un file di configurazione YAML per definire i parametri in modo permanente:
+You can create a YAML configuration file to define parameters permanently:
 
-1. Copia il file di esempio:
+1. Copy the example file:
 ```bash
 cp config.yaml.example config.yaml
 ```
 
-2. Modifica il file `config.yaml` con i tuoi parametri:
+2. Edit `config.yaml` with your parameters:
 ```yaml
-# feed_url è OBBLIGATORIO
+# feed_url is REQUIRED
 feed_url: https://pensieriincodice.it/podcast/index.xml
 output_dir: ./output
 episode: 142
 soundbites: "all"
 
-# Personalizza i colori (opzionale)
+# Customize colors (optional)
 colors:
-  primary: [242, 101, 34]      # Arancione
+  primary: [242, 101, 34]      # Orange
   background: [235, 213, 197]  # Beige
-  text: [255, 255, 255]        # Bianco
-  transcript_bg: [0, 0, 0]     # Nero
+  text: [255, 255, 255]        # White
+  transcript_bg: [0, 0, 0]     # Black
 
-# Configura i formati video (opzionale)
+# Configure video formats (optional)
 formats:
   vertical:
     width: 1080
@@ -171,152 +171,152 @@ formats:
   square:
     enabled: true
   horizontal:
-    enabled: false  # Disabilita formato orizzontale
+    enabled: false  # Disable horizontal format
 ```
 
-3. Usa il file di configurazione:
+3. Use the configuration file:
 ```bash
 python -m audiogram_generator --config config.yaml
 ```
 
-#### Personalizzazione colori e formati
+#### Customizing colors and formats
 
-Il file di configurazione permette di personalizzare completamente l'aspetto degli audiogrammi:
+The configuration file allows you to fully customize the appearance of the audiograms:
 
-**Colori personalizzabili:**
-- `primary`: Colore per header, footer e barre waveform (default: arancione)
-- `background`: Colore di sfondo dell'area centrale (default: beige)
-- `text`: Colore del testo (default: bianco)
-- `transcript_bg`: Colore di sfondo della trascrizione (default: nero)
+**Customizable colors:**
+- `primary`: Color for header, footer, and waveform bars (default: orange)
+- `background`: Background color for the central area (default: beige)
+- `text`: Text color (default: white)
+- `transcript_bg`: Background color for the transcript (default: black)
 
-I colori sono specificati come liste RGB `[R, G, B]` con valori 0-255.
+Colors are defined as RGB lists `[R, G, B]` with values 0–255.
 
-**Formati video configurabili:**
+**Configurable video formats:**
 
-Ogni formato può essere:
-- Personalizzato nelle dimensioni (`width`, `height`)
-- Abilitato o disabilitato (`enabled: true/false`)
-- Dotato di una descrizione personalizzata
+Each format can be:
+- Customized in size (`width`, `height`)
+- Enabled or disabled (`enabled: true/false`)
+- Given a custom description
 
-Formati disponibili:
-- `vertical`: 9:16 per Reels, Stories, Shorts, TikTok
-- `square`: 1:1 per Post Instagram, Twitter, Mastodon
-- `horizontal`: 16:9 per YouTube
+Available formats:
+- `vertical`: 9:16 for Reels, Stories, Shorts, TikTok
+- `square`: 1:1 for Instagram posts, Twitter/X, Mastodon
+- `horizontal`: 16:9 for YouTube
 
-**Hashtag personalizzabili:**
+**Custom hashtags:**
 
-È possibile specificare una lista di hashtag aggiuntivi nel file di configurazione:
+You can specify a list of additional hashtags in the configuration file:
 
 ```yaml
 hashtags:
   - podcast
   - tech
-  - sviluppo
-  - programmazione
+  - development
+  - programming
   - coding
 ```
 
-Gli hashtag specificati nel file di configurazione verranno combinati con le keywords estratte dal feed RSS (sia a livello di podcast che di episodio). Gli hashtag duplicati vengono automaticamente rimossi, preservando l'ordine di inserimento (prima keywords del podcast, poi keywords dell'episodio, infine hashtag dal file di configurazione).
+Hashtags specified in the configuration file will be combined with keywords extracted from the RSS feed (both at the podcast and episode levels). Duplicate hashtags are automatically removed while preserving insertion order (first podcast keywords, then episode keywords, then config file hashtags).
 
 ### Output
 
-I video e i file caption generati vengono salvati nella directory specificata (default: `output/`) con naming:
+Videos and caption files are saved in the specified directory (default: `output/`) with the following naming:
 
-**Video:**
+**Videos:**
 ```
-ep{numero_episodio}_sb{numero_soundbite}_{formato}.mp4
-```
-
-**Caption per social media:**
-```
-ep{numero_episodio}_sb{numero_soundbite}_caption.md
+ep{episode_number}_sb{soundbite_number}_{format}.mp4
 ```
 
-Esempio per il soundbite 1 dell'episodio 142:
-- `ep142_sb1_vertical.mp4` - Video verticale per Reels, Stories, Shorts, TikTok
-- `ep142_sb1_square.mp4` - Video quadrato per post Instagram, Twitter, Mastodon
-- `ep142_sb1_horizontal.mp4` - Video orizzontale per YouTube
-- `ep142_sb1_caption.md` - File con caption pronta per il post social
+**Social caption file:**
+```
+ep{episode_number}_sb{soundbite_number}_caption.md
+```
 
-#### File caption
+Example for soundbite 1 of episode 142:
+- `ep142_sb1_vertical.mp4` — Vertical video for Reels, Stories, Shorts, TikTok
+- `ep142_sb1_square.mp4` — Square video for Instagram, Twitter/X, Mastodon
+- `ep142_sb1_horizontal.mp4` — Horizontal video for YouTube
+- `ep142_sb1_caption.md` — Caption file ready for social posting
 
-Ogni file `_caption.md` contiene:
-- Titolo e numero dell'episodio
-- Titolo del soundbite
-- Testo completo della trascrizione
-- Link all'episodio completo
-- Hashtag suggeriti (combinazione di keywords dal feed RSS e hashtag configurati)
+#### Caption file
 
-Puoi copiare il contenuto direttamente per creare i tuoi post sui social media.
+Each `_caption.md` file contains:
+- Episode title and number
+- Soundbite title
+- Full transcript text
+- Link to the full episode
+- Suggested hashtags (combination of feed keywords and configured hashtags)
 
-## Dipendenze principali
+You can copy the content directly to create your social posts.
 
-- **feedparser** (≥6.0.10) - Parsing del feed RSS
-- **moviepy** (≥1.0.3) - Generazione e compositing video
-- **pillow** (≥10.0.0) - Elaborazione immagini e rendering frame
-- **pydub** (≥0.25.1) - Elaborazione e manipolazione audio
-- **numpy** (≥1.24.0) - Calcoli numerici per forme d'onda
-- **requests** (≥2.31.0) - Download risorse remote
-- **pyyaml** (≥6.0) - Parsing file di configurazione YAML
+## Main dependencies
 
-## Struttura audiogram
+- **feedparser** (≥6.0.10) — RSS feed parsing
+- **moviepy** (≥1.0.3) — Video generation and compositing
+- **pillow** (≥10.0.0) — Image processing and frame rendering
+- **pydub** (≥0.25.1) — Audio processing and manipulation
+- **numpy** (≥1.24.0) — Numerical calculations for waveforms
+- **requests** (≥2.31.0) — Downloading remote resources
+- **pyyaml** (≥6.0) — YAML configuration parsing
 
-Ogni video generato include:
-- **Header arancione** con testo "ASCOLTA" e icone audio
-- **Area centrale** con:
-  - Locandina del podcast
-  - Waveform animata ai lati sincronizzata con l'audio
-- **Trascrizione in tempo reale** nella parte bassa dell'area centrale
-- **Footer arancione** con:
-  - Titolo del podcast
-  - Titolo dell'episodio/soundbite
+## Audiogram structure
 
-## Test
+Each generated video includes:
+- **Orange header** with "LISTEN" text and audio icons
+- **Central area** with:
+  - Podcast cover art
+  - Animated waveform on the sides synchronized with audio
+- **Live transcript** at the bottom of the central area
+- **Orange footer** with:
+  - Podcast title
+  - Episode/soundbite title
 
-Il progetto include una suite di test per verificare il corretto funzionamento dei componenti.
+## Tests
 
-### Eseguire i test
+The project includes a test suite to verify the correct functioning of components.
 
-Per eseguire tutti i test:
+### Run tests
+
+To run all tests:
 ```bash
 python -m unittest discover tests
 ```
 
-Per eseguire i test di un modulo specifico:
+To run tests for a specific module:
 ```bash
-# Test del modulo di configurazione
+# Configuration module tests
 python -m unittest tests.test_config -v
 
-# Test del generatore di audiogrammi
+# Audiogram generator tests
 python -m unittest tests.test_generator -v
 ```
 
-Per eseguire un singolo test:
+To run a single test:
 ```bash
 python -m unittest tests.test_config.TestConfig.test_configuration_precedence -v
 ```
 
-### Test disponibili
+### Available tests
 
-- **test_config.py** - 14 test per il modulo di configurazione:
-  - Caricamento da file YAML
-  - Override da argomenti CLI
-  - Gestione valori di default
-  - Precedenza configurazione (default < file < CLI)
-  - Gestione errori e casi limite
+- **test_config.py** — 14 tests for the configuration module:
+  - Loading from YAML file
+  - CLI argument overrides
+  - Default value handling
+  - Configuration precedence (default < file < CLI)
+  - Error handling and edge cases
 
-- **test_generator.py** - Test per il generatore di audiogrammi
+- **test_generator.py** — Tests for the audiogram generator
 
 ## TODO
 
-- [ ] Migliorare le proporzioni della grafica degli audiogrammi
-- [x] Rendere configurabile la grafica degli audiogrammi
-- [ ] Aggiungere la possibilità di estrarre soundbite utilizzando IA
-- [ ] Aggiungere la trascrizione tramite IA se non presente nel feed
-- [x] Permettere la configurazione per più podcast tramite file di configurazione
-- [x] Implementare batteria di test per verificare che i meccanismi di configurazione funzionino correttamente 
-- [ ] Tradurre documentazione, commenti, ecc. in inglese
+- [x] Improve audiogram layout proportions
+- [x] Make audiogram graphics configurable
+- [ ] Add AI-powered soundbite extraction
+- [ ] Add AI transcription if not present in the feed
+- [x] Allow configuration for multiple podcasts via config file
+- [x] Implement test suite to verify configuration mechanisms
+- [x] Translate documentation, comments, etc. into English
 
-## Licenza
+## License
 
-Vedi il file [LICENSE](LICENSE) per i dettagli.
+See the [LICENSE](LICENSE) file for details.

@@ -1,5 +1,5 @@
 """
-Interfaccia a riga di comando per il generatore di audiogrammi
+Command-line interface for the audiogram generator
 """
 import feedparser
 import ssl
@@ -16,7 +16,7 @@ from .config import Config
 
 
 def get_podcast_episodes(feed_url):
-    """Recupera la lista degli episodi dal feed RSS"""
+    """Fetch the list of episodes from the RSS feed"""
     # Crea un contesto SSL che non verifica i certificati
     ssl_context = ssl.create_default_context()
     ssl_context.check_hostname = False
@@ -267,19 +267,19 @@ def generate_caption_file(output_path, episode_number, episode_title, episode_li
     # Formatta hashtag con il simbolo #
     hashtag_string = ' '.join([f'#{tag}' for tag in unique_hashtags]) if unique_hashtags else '#podcast'
 
-    caption = f"""# Caption per Social Media
+    caption = f"""# Social Media Caption
 
-## Episodio {episode_number}: {episode_title}
+## Episode {episode_number}: {episode_title}
 
 {soundbite_title}
 
 {transcript_text}
 
-🎧 Ascolta l'episodio completo: {episode_link}
+🎧 Listen to the full episode: {episode_link}
 
 ---
 
-**Hashtags suggeriti:**
+**Suggested hashtags:**
 {hashtag_string}
 """
 
@@ -585,13 +585,13 @@ def process_one_episode(selected, podcast_info, colors, formats_config, config_h
 
 def main():
     """Funzione principale CLI"""
-    # Parsing argomenti
-    parser = argparse.ArgumentParser(description='Generatore di audiogrammi da podcast RSS')
-    parser.add_argument('--config', type=str, help='Path al file di configurazione YAML')
-    parser.add_argument('--feed-url', type=str, help='URL del feed RSS del podcast')
-    parser.add_argument('--episode', type=str, help="Episodio da processare: numero (es. 5), lista (es. 1,3,5) o 'all'/'a' per tutti")
-    parser.add_argument('--soundbites', type=str, help='Soundbites da generare: numero specifico, "all" per tutti, o lista separata da virgole (es: 1,3,5)')
-    parser.add_argument('--output-dir', type=str, help='Directory di output per i file generati')
+    # Argument parsing
+    parser = argparse.ArgumentParser(description='Audiogram generator from podcast RSS')
+    parser.add_argument('--config', type=str, help='Path to the YAML configuration file')
+    parser.add_argument('--feed-url', type=str, help='URL of the podcast RSS feed')
+    parser.add_argument('--episode', type=str, help="Episode(s) to process: number (e.g., 5), list (e.g., 1,3,5) or 'all'/'a' for all")
+    parser.add_argument('--soundbites', type=str, help='Soundbites to generate: specific number, "all" for all, or comma-separated list (e.g., 1,3,5)')
+    parser.add_argument('--output-dir', type=str, help='Output directory for generated files')
 
     args = parser.parse_args()
 
@@ -623,7 +623,7 @@ def main():
     if feed_url is None:
         try:
             while True:
-                user_input = input("\nInserisci l'URL del feed RSS del podcast: ").strip()
+                user_input = input("\nEnter the podcast RSS feed URL: ").strip()
                 if user_input:
                     feed_url = user_input
                     print(f"Usando feed: {feed_url}")
