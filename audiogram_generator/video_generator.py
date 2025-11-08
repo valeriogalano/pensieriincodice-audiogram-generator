@@ -77,6 +77,10 @@ def _draw_rounded_box_with_shadow(base_img, box, fill, radius=16, shadow=True, s
 def _render_subtitle_lines(img, draw, text, font, start_y, max_width, style, x_bounds=None):
     """Esegue il word wrap e disegna le righe di sottotitoli più gradevoli entro un'area orizzontale opzionale.
     Ritorna (img, total_height_disegnata).
+
+    Nota: la spaziatura verticale tra le righe usa un'altezza di riga costante
+    basata sulle metriche del font, così da evitare differenze dovute ai glifi
+    presenti nelle singole righe (ascendenti/descendenti).
     """
     # Word wrap manuale
     words = text.split()
@@ -113,6 +117,15 @@ def _render_subtitle_lines(img, draw, text, font, start_y, max_width, style, x_b
         inner_right = img.width - padding
         area_width = max(1, inner_right - inner_left)
 
+    # Calcola altezza di riga costante basata sul font
+    try:
+        ascent, descent = font.getmetrics()
+        constant_line_height = ascent + descent
+    except Exception:
+        # Fallback: usa l'altezza del bbox di una stringa campione
+        sample_bbox = draw.textbbox((0, 0), "Hg", font=font)
+        constant_line_height = (sample_bbox[3] - sample_bbox[1])
+
     total_height = 0
     for i, line in enumerate(lines):
         bbox = draw.textbbox((0, 0), line, font=font)
@@ -137,7 +150,8 @@ def _render_subtitle_lines(img, draw, text, font, start_y, max_width, style, x_b
         draw = ImageDraw.Draw(img)
         draw.text((line_x, line_y), line, fill=style['text_color'], font=font)
 
-        line_advance = int(lh * style['line_spacing'])
+        # Avanzamento verticale costante, indipendente dai glifi della riga
+        line_advance = int(constant_line_height * style['line_spacing'])
         total_height += line_advance
 
     return img, int(total_height)
