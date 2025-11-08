@@ -14,6 +14,7 @@ class Config:
         'output_dir': './output',
         'episode': None,
         'soundbites': None,
+        'dry_run': False,
         'colors': {
             'primary': [242, 101, 34],      # Orange (header, footer, bars)
             'background': [235, 213, 197],  # Beige (central background)

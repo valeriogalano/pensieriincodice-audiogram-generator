@@ -20,6 +20,7 @@ Automatic audiogram generator for podcasts. The tool downloads episodes from an 
 - **Customizable layout** with podcast colors and branding
 - **Audio processing** with precise segment extraction
 - **Interactive CLI** for selecting episodes and soundbites
+- **Dry-run mode** to preview start/end times and subtitles without generating files
 
 ## Project structure
 
@@ -112,6 +113,7 @@ python -m audiogram_generator [options]
   - Comma-separated list: `1,3,5`
   - All soundbites: `all` or `a`
 - `--output-dir PATH` — Output directory for generated videos (default: `./output`)
+- `--dry-run` — Print start/end time and subtitles for selected soundbites without generating files
 
 **Precedence notes:**
 Command-line arguments take precedence over the configuration file, which in turn takes precedence over default values.
@@ -138,6 +140,47 @@ python -m audiogram_generator --config config.yaml
 python -m audiogram_generator --config config.yaml --episode 150
 ```
 
+### Dry-run mode
+
+Preview soundbite details without generating any files. This is useful to verify timings and transcript content before producing videos.
+
+- What it does:
+  - Prints, for each selected soundbite, the start time, end time, and the aggregated subtitle text from the SRT transcript when available (falls back to the soundbite title if no transcript is found).
+  - Does not download/generate audio/video files. It may download the transcript SRT to extract text.
+
+- How to use from CLI:
+  ```bash
+  python -m audiogram_generator --config config.yaml --episode 142 --soundbites all --dry-run
+  
+  # Or without a config file
+  python -m audiogram_generator --feed-url <RSS_URL> --episode 1 --soundbites 1,3 --dry-run
+  ```
+
+- Enable via config file (optional):
+  ```yaml
+  dry_run: true
+  ```
+  Note: CLI arguments take precedence over the configuration file.
+
+- Expected output (example):
+  ```
+  Episode 142: <title>
+  Audio: <url>
+  
+  Soundbites found (3):
+  
+  ============================================================
+  Dry-run: print start/end time and subtitles
+  ============================================================
+  
+  Soundbite 1
+  - Start:    12.000s (00:00:12.000)
+  - Duration: 15.500s (00:00:15.500)
+  - End:      27.500s (00:00:27.500)
+  - Subtitles:
+  <text joined from SRT segments in range>
+  ```
+
 ### Configuration file
 
 You can create a YAML configuration file to define parameters permanently:
@@ -154,6 +197,8 @@ feed_url: https://pensieriincodice.it/podcast/index.xml
 output_dir: ./output
 episode: 142
 soundbites: "all"
+# Optional: preview timings and subtitles without generating files
+dry_run: false
 
 # Customize colors (optional)
 colors:

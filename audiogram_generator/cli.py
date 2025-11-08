@@ -134,6 +134,18 @@ def parse_srt_time(time_str):
     return hours * 3600 + minutes * 60 + seconds
 
 
+def format_seconds(seconds: float) -> str:
+    """Formatta i secondi in HH:MM:SS.mmm"""
+    import math
+    sign = '-' if seconds < 0 else ''
+    s = abs(seconds)
+    hours = int(s // 3600)
+    minutes = int((s % 3600) // 60)
+    secs = int(s % 60)
+    millis = int(round((s - math.floor(s)) * 1000))
+    return f"{sign}{hours:02d}:{minutes:02d}:{secs:02d}.{millis:03d}"
+
+
 def get_transcript_text(transcript_url, start_time, duration):
     """Scarica il file SRT e estrae il testo nel range temporale"""
     ssl_context = ssl.create_default_context()
@@ -307,10 +319,82 @@ def parse_episode_selection(value, max_episode: int) -> List[int]:
     raise ValueError('Formato episodio non supportato')
 
 
-def process_one_episode(selected, podcast_info, colors, formats_config, config_hashtags, cta_text, show_progress_bar, output_dir, soundbites_choice):
+def parse_soundbite_selection(value, max_soundbites: int) -> List[int]:
+    """Parsa selezione soundbites (numero, lista, all) in lista di int"""
+    if value is None:
+        return list(range(1, max_soundbites + 1))
+    if isinstance(value, int):
+        if 1 <= value <= max_soundbites:
+            return [value]
+        raise ValueError('Numero soundbite fuori intervallo')
+    if isinstance(value, str):
+        v = value.strip().lower()
+        if v in ('all', 'a'):
+            return list(range(1, max_soundbites + 1))
+        parts = [p.strip() for p in v.split(',') if p.strip()]
+        nums: List[int] = []
+        for p in parts:
+            if not p.isdigit():
+                raise ValueError('Valore non numerico nella lista')
+            n = int(p)
+            if not (1 <= n <= max_soundbites):
+                raise ValueError('Numero soundbite fuori intervallo')
+            if n not in nums:
+                nums.append(n)
+        if not nums:
+            raise ValueError('Nessun soundbite valido specificato')
+        return nums
+    raise ValueError('Formato soundbite non supportato')
+
+
+def process_one_episode(selected, podcast_info, colors, formats_config, config_hashtags, cta_text, show_progress_bar, output_dir, soundbites_choice, dry_run=False):
     print(f"\nEpisodio {selected['number']}: {selected['title']}")
     if selected['audio_url']:
         print(f"Audio: {selected['audio_url']}")
+
+    # Modalità dry-run: stampa solo intervalli e sottotitoli e termina
+    if dry_run:
+        sbs = selected.get('soundbites') or []
+        print(f"\nSoundbites trovati ({len(sbs)}):")
+        if not sbs:
+            print("Nessun soundbite disponibile per questo episodio.")
+            return
+        # Determina quali soundbite stampare
+        try:
+            nums = parse_soundbite_selection(soundbites_choice, len(sbs))
+        except ValueError as e:
+            print(f"Errore selezione soundbites: {e}")
+            return
+        print("\n" + "="*60)
+        print("Dry-run: stampa tempo di inizio/fine e testo sottotitoli")
+        print("="*60)
+        for idx in nums:
+            sb = sbs[idx - 1]
+            try:
+                start_s = float(sb['start'])
+                dur_s = float(sb['duration'])
+            except Exception:
+                print(f"Soundbite {idx}: valori di tempo non validi (start={sb.get('start')}, duration={sb.get('duration')})")
+                continue
+            end_s = start_s + dur_s
+            # Recupera testo trascrizione oppure fallback al titolo del soundbite
+            transcript_text = None
+            if selected.get('transcript_url'):
+                transcript_text = get_transcript_text(
+                    selected['transcript_url'],
+                    sb['start'],
+                    sb['duration']
+                )
+            text = (transcript_text or sb.get('text') or '').strip()
+
+            print(f"\nSoundbite {idx}")
+            print(f"- Inizio: {start_s:.3f}s ({format_seconds(start_s)})")
+            print(f"- Durata: {dur_s:.3f}s ({format_seconds(dur_s)})")
+            print(f"- Fine:   {end_s:.3f}s ({format_seconds(end_s)})")
+            print(f"- Testo sottotitoli:")
+            print(text if text else "[Non disponibile]")
+        # Non generare nulla in dry-run
+        return
 
     # Mostra soundbites se esistono
     if selected['soundbites']:
@@ -584,6 +668,7 @@ def main():
     parser.add_argument('--episode', type=str, help="Episode(s) to process: number (e.g., 5), list (e.g., 1,3,5) or 'all'/'a' for all")
     parser.add_argument('--soundbites', type=str, help='Soundbites to generate: specific number, "all" for all, or comma-separated list (e.g., 1,3,5)')
     parser.add_argument('--output-dir', type=str, help='Output directory for generated files')
+    parser.add_argument('--dry-run', action='store_true', help='Stampa solo intervalli e sottotitoli dei soundbite senza generare file')
 
     args = parser.parse_args()
 
@@ -595,7 +680,8 @@ def main():
         'feed_url': args.feed_url,
         'episode': args.episode,
         'soundbites': args.soundbites,
-        'output_dir': args.output_dir
+        'output_dir': args.output_dir,
+        'dry_run': args.dry_run
     })
 
     # Usa argomenti o richiedi input interattivo
@@ -610,6 +696,7 @@ def main():
     config_hashtags = config.get('hashtags', [])
     cta_text = config.get('cta_text')
     show_progress_bar = config.get('show_progress_bar', False)
+    dry_run = config.get('dry_run', False)
 
     # Chiedi feed_url interattivamente se non specificato
     if feed_url is None:
@@ -687,7 +774,8 @@ def main():
             cta_text=cta_text,
             show_progress_bar=show_progress_bar,
             output_dir=output_dir,
-            soundbites_choice=soundbites_choice
+            soundbites_choice=soundbites_choice,
+            dry_run=dry_run
         )
 
     return
