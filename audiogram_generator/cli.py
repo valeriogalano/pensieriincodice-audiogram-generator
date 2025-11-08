@@ -177,10 +177,8 @@ def get_transcript_text(transcript_url, start_time, duration):
                     entry_start = parse_srt_time(time_parts[0].strip())
                     entry_end = parse_srt_time(time_parts[1].strip())
 
-                    # Verifica se questo entry è nel range del soundbite
-                    if (entry_start >= start_time_sec and entry_start < end_time_sec) or \
-                       (entry_end > start_time_sec and entry_end <= end_time_sec) or \
-                       (entry_start <= start_time_sec and entry_end >= end_time_sec):
+                    # Includi SOLO i blocchi interamente contenuti nel soundbite
+                    if (entry_start >= start_time_sec) and (entry_end <= end_time_sec):
                         text = ' '.join(lines[2:])
                         transcript_lines.append(text)
 
@@ -216,10 +214,8 @@ def get_transcript_chunks(transcript_url, start_time, duration):
                     entry_start = parse_srt_time(time_parts[0].strip())
                     entry_end = parse_srt_time(time_parts[1].strip())
 
-                    # Verifica se questo entry è nel range del soundbite
-                    if (entry_start >= start_time_sec and entry_start < end_time_sec) or \
-                       (entry_end > start_time_sec and entry_end <= end_time_sec) or \
-                       (entry_start <= start_time_sec and entry_end >= end_time_sec):
+                    # Includi SOLO i blocchi interamente contenuti nel soundbite
+                    if (entry_start >= start_time_sec) and (entry_end <= end_time_sec):
                         text = ' '.join(lines[2:])
                         # Converti timing relativi al soundbite (inizia da 0)
                         transcript_chunks.append({

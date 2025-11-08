@@ -8,6 +8,8 @@ from moviepy import VideoClip, AudioFileClip
 from pydub import AudioSegment
 import urllib.request
 import ssl
+import re
+import unicodedata
 
 
 # Formati video per social media
@@ -44,6 +46,18 @@ def _subtitle_default_style(colors):
         'max_lines': 5,                 # righe massime visualizzate
         'width_ratio': 0.88             # % della larghezza massima
     }
+
+
+def _strip_punctuation(text: str) -> str:
+    """Rimuove la punteggiatura (Unicode) dal testo dei sottotitoli e normalizza gli spazi.
+    Esempi rimossi: . , ; : ! ? … – — - ( ) [ ] { } « » “ ” ' " ecc.
+    """
+    if not text:
+        return text
+    # Rimuovi tutti i caratteri la cui categoria Unicode inizia con 'P' (punctuation)
+    no_punct = ''.join((ch if unicodedata.category(ch)[0] != 'P' else ' ') for ch in text)
+    # Collassa spazi multipli e trim
+    return re.sub(r"\s+", " ", no_punct).strip()
 
 
 def _draw_rounded_box_with_shadow(base_img, box, fill, radius=16, shadow=True, shadow_offset=(0, 3), shadow_blur=8):
@@ -545,6 +559,7 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
                 break
 
         if current_text:
+            current_text = _strip_punctuation(current_text)
             try:
                 font_transcript = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(height * 0.028))
             except:
@@ -768,6 +783,7 @@ def create_square_layout(img, draw, width, height, podcast_logo_path, podcast_ti
                 break
 
         if current_text:
+            current_text = _strip_punctuation(current_text)
             try:
                 font_transcript = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(height * 0.030))
             except:
@@ -960,6 +976,7 @@ def create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcas
                 break
 
         if current_text:
+            current_text = _strip_punctuation(current_text)
             try:
                 font_transcript = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(height * 0.030))
             except:
