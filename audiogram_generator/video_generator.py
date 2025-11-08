@@ -37,7 +37,7 @@ def _subtitle_default_style(colors):
         'bg_color': bg_with_alpha,      # RGBA
         'padding': 18,                  # px
         'radius': 18,                   # px angoli arrotondati
-        'line_spacing': 1.28,           # moltiplicatore altezza riga
+        'line_spacing': 2,              # moltiplicatore altezza riga
         'shadow': True,                 # ombra soft al box
         'shadow_offset': (0, 4),        # dx, dy
         'shadow_blur': 10,              # raggio blur
