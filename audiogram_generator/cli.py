@@ -280,7 +280,7 @@ def generate_caption_file(output_path, episode_number, episode_title, episode_li
         f"{soundbite_title}\n\n"
         f"{transcript_text}\n\n"
         f"Ascolta l'episodio completo: {episode_link}\n\n"
-        f"Hashtag suggeriti: {hashtag_string}\n"
+        f"{hashtag_string}\n"
     )
 
     with open(output_path, 'w', encoding='utf-8') as f:
