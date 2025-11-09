@@ -73,23 +73,3 @@ hashtags:
 # Brucia i sottotitoli direttamente sul video
 # Default: true
 show_subtitles: true
-
-# Esempi di personalizzazione:
-#
-# 1. Disabilitare un formato specifico:
-#    formats:
-#      horizontal:
-#        enabled: false
-#
-# 2. Modificare le dimensioni di un formato:
-#    formats:
-#      vertical:
-#        width: 720
-#        height: 1280
-#
-# 3. Personalizzare i colori per il tuo brand:
-#    colors:
-#      primary: [33, 150, 243]     # Blu
-#      background: [255, 255, 255]  # Bianco
-#      text: [0, 0, 0]              # Nero
-#      transcript_bg: [33, 33, 33]  # Grigio scuro
