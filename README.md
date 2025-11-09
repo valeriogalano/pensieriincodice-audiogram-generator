@@ -390,6 +390,7 @@ python -m unittest tests.test_config.TestConfig.test_configuration_precedence -v
 - [ ] Let user choose if use podcast cover or episode cover
 - [ ] Postfix audiograms with no subtitles
 - [ ] Update usage doc (this file)
+- [ ] Handle tags with spaces (remove space? add underscore?)
 
 ## License
 
