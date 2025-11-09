@@ -388,6 +388,8 @@ python -m unittest tests.test_config.TestConfig.test_configuration_precedence -v
 - [x] Allow configuration for multiple podcasts via config file
 - [x] Implement test suite to verify configuration mechanisms
 - [x] Translate documentation, comments, etc. into English
+- [ ] Better document subtitles configuration capabilities
+- [ ] Make podcast title presence configurable
 
 ## License
 
