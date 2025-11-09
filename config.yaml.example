@@ -88,6 +88,11 @@ cta_text: "Ascolta l'episodio completo su pensieriincodice.it"
 # Default: false
 show_progress_bar: false
 
+# Sottotitoli (opzionale)
+# Brucia i sottotitoli direttamente sul video
+# Default: true
+show_subtitles: true
+
 # Esempi di personalizzazione:
 #
 # 1. Disabilitare un formato specifico:

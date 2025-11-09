@@ -1148,7 +1148,8 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
 
 def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
                       podcast_title, episode_title, transcript_chunks, duration,
-                      formats=None, colors=None, cta_text=None, show_progress_bar=False, show_subtitles=True):
+                      formats=None, colors=None, cta_text=None, show_progress_bar=False,
+                      show_subtitles=True):
     """
     Genera un video audiogram completo
 

@@ -497,7 +497,8 @@ def process_one_episode(selected, podcast_info, colors, formats_config, config_h
                             formats_config,
                             colors,
                             cta_text,
-                            show_progress_bar
+                            show_progress_bar,
+                            show_subtitles
                         )
 
                         print(f"✓ {format_name}: {output_path}")
@@ -620,7 +621,8 @@ def process_one_episode(selected, podcast_info, colors, formats_config, config_h
                                 formats_config,
                                 colors,
                                 cta_text,
-                                show_progress_bar
+                                show_progress_bar,
+                                show_subtitles
                             )
 
                             print(f"✓ {format_name}: {output_path}")
@@ -919,7 +921,8 @@ def main():
                             formats_config,
                             colors,
                             cta_text,
-                            show_progress_bar
+                            show_progress_bar,
+                            show_subtitles
                         )
 
                         print(f"✓ {format_name}: {output_path}")
@@ -1058,7 +1061,8 @@ def main():
                                 formats_config,
                                 colors,
                                 cta_text,
-                                show_progress_bar
+                                show_progress_bar,
+                                show_subtitles
                             )
 
                             print(f"✓ {format_name}: {output_path}")
