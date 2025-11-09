@@ -256,162 +256,55 @@ def get_waveform_data(audio_path, fps=24):
     return np.array(frame_amplitudes)
 
 
-def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_title, episode_title,
-                           waveform_data, current_time, transcript_chunks, audio_duration, colors):
+# Configurazioni per i diversi layout
+LAYOUT_CONFIGS = {
+    'vertical': {
+        'header_ratio': 0.17,
+        'central_ratio': 0.54,
+        'footer_ratio': 0.27,
+        'logo_size_ratio': 0.6,
+        'transcript_font_size': 0.028,
+        'transcript_y_offset': 0.84,
+        'max_lines': 5
+    },
+    'square': {
+        'header_ratio': 0.12,
+        'central_ratio': 0.66,
+        'footer_ratio': 0.20,
+        'logo_size_ratio': 0.5,
+        'transcript_font_size': 0.030,
+        'transcript_y_offset': 0.15,
+        'max_lines': 3
+    },
+    'horizontal': {
+        'header_ratio': 0.15,
+        'central_ratio': 0.68,
+        'footer_ratio': 0.15,
+        'logo_size_ratio': 0.6,
+        'logo_width_ratio': 0.3,
+        'transcript_font_size': 0.030,
+        'transcript_y_offset': 0.12,
+        'max_lines': 2
+    }
+}
+
+
+def _create_unified_layout(img, draw, width, height, podcast_logo_path, podcast_title, episode_title,
+                           waveform_data, current_time, transcript_chunks, audio_duration, colors, layout_config):
     """
-    Layout specifico per formato verticale 9:16 (1080x1920)
-    Ottimizzato per Instagram Reels, Stories, YouTube Shorts, TikTok
-    """
-    progress_height = 0
-
-    # Header (17% altezza) - vuoto, senza titolo episodio
-    header_top = progress_height
-    header_height = int(height * 0.17)
-    draw.rectangle([(0, header_top), (width, header_top + header_height)], fill=colors['primary'])
-
-    # Area centrale (54% altezza) - ridotta per compensare l'header più grande
-    central_top = header_top + header_height
-    central_height = int(height * 0.54)
-    central_bottom = central_top + central_height
-
-    # Visualizzatore waveform tipo equalizer che "balla" con l'audio
-    if waveform_data is not None and len(waveform_data) > 0:
-        # Configurazione bars
-        bar_spacing = 3
-        bar_width = 12
-        total_bar_width = bar_width + bar_spacing
-
-        x_start = 0
-        available_width = width
-
-        # Calcola quante bars entrano nella larghezza disponibile
-        num_bars = available_width // total_bar_width
-        # Rendi pari per simmetria
-        if num_bars % 2 != 0:
-            num_bars -= 1
-
-        # Proteggi contro num_bars troppo piccolo (serve almeno 2 per la simmetria)
-        if num_bars >= 2:
-            # Ottieni l'ampiezza corrente dell'audio in questo momento
-            frame_idx = int((current_time / audio_duration) * len(waveform_data)) if audio_duration > 0 else 0
-            frame_idx = min(frame_idx, len(waveform_data) - 1)
-            current_amplitude = waveform_data[frame_idx]
-
-            # Crea pattern simmetrico con variazione casuale ma controllata
-            # Ogni bar ha una "sensibilità" diversa alle frequenze
-            np.random.seed(42)  # Seed fisso per consistenza tra frame
-            sensitivities = np.random.uniform(0.6, 1.4, num_bars // 2)
-            sensitivities = np.concatenate([sensitivities, sensitivities[::-1]])  # Simmetria
-
-            # Area verticale disponibile per waveform
-            avail_top = central_top
-            avail_bottom = central_bottom
-            avail_height = max(0, avail_bottom - avail_top)
-
-            # Disegna le bars da sinistra a destra
-            for i in range(num_bars):
-                x = x_start + i * total_bar_width
-
-                # Calcola altezza bar con pattern simmetrico dal centro
-                center_idx = num_bars // 2
-                distance_from_center = abs(i - center_idx)
-
-                # Le bars centrali sono più reattive
-                center_boost = 1.0 + (1.0 - distance_from_center / center_idx) * 0.4 if center_idx > 0 else 1.0
-
-                # Ampiezza finale con sensibilità e boost
-                bar_amplitude = current_amplitude * sensitivities[i] * center_boost
-
-                # Altezza minima e massima (relativa all'altezza disponibile)
-                # Altezza minima ridotta per avere barre più sottili quando non c'è suono
-                min_height = int(avail_height * 0.03)
-                max_height = int(avail_height * 0.80)
-                bar_height = int(min_height + (bar_amplitude * (max_height - min_height))) if max_height > min_height else min_height
-                bar_height = max(min_height, min(bar_height, max_height))
-
-                # Centra verticalmente all'interno dell'area disponibile (spostato al 40%)
-                if avail_height > 0:
-                    y_center = avail_top + int(avail_height * 0.40)
-                else:
-                    y_center = central_top + int(central_height * 0.40)
-                y_top = y_center - bar_height // 2
-                y_bottom = y_center + bar_height // 2
-
-                # Disegna la bar solo se visibile
-                if y_bottom > y_top and (x + bar_width) > x and x < (x_start + available_width):
-                    draw.rectangle([(x, y_top), (x + bar_width, y_bottom)], fill=colors['primary'])
-
-    # Logo podcast al centro (sopra la waveform) - spostato più in alto
-    if os.path.exists(podcast_logo_path):
-        logo = Image.open(podcast_logo_path)
-        logo_size = int(min(width, central_height) * 0.6)
-        logo = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
-
-        # Posizione spostata più in alto (al 35% invece del 50%)
-        logo_x = (width - logo_size) // 2
-        logo_y = central_top + int(central_height * 0.35) - logo_size // 2
-        img.paste(logo, (logo_x, logo_y), logo if logo.mode == 'RGBA' else None)
-
-    # Footer (27% altezza) - vuoto, senza titolo podcast e CTA
-    footer_top = central_bottom
-    footer_height = int(height * 0.27)
-    footer_bottom = footer_top + footer_height
-    draw.rectangle([(0, footer_top), (width, footer_bottom)], fill=colors['primary'])
-
-    # Trascrizione in tempo reale (sopra il footer, nell'area centrale bassa)
-    if transcript_chunks:
-        current_text = ""
-        for chunk in transcript_chunks:
-            if chunk['start'] <= current_time < chunk['end']:
-                current_text = chunk['text']
-                break
-
-        if current_text:
-            current_text = _strip_punctuation(current_text)
-            try:
-                font_transcript = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(height * 0.028))
-            except:
-                font_transcript = ImageFont.load_default()
-
-            # Posizionamento più in basso per aumentare lo spazio dal logo
-            transcript_y = central_top + int(central_height * 0.74)
-
-            # Stile sottotitoli
-            style = _subtitle_default_style(colors)
-            max_width = int(width * style['width_ratio'])
-
-            img, _ = _render_subtitle_lines(
-                img,
-                draw,
-                current_text,
-                font_transcript,
-                transcript_y,
-                max_width,
-                style
-            )
-            # Aggiorna draw nel caso l'immagine sia stata convertita in RGBA
-            draw = ImageDraw.Draw(img)
-
-    return img
-
-
-def create_square_layout(img, draw, width, height, podcast_logo_path, podcast_title, episode_title,
-                         waveform_data, current_time, transcript_chunks, audio_duration, colors):
-    """
-    Layout specifico per formato quadrato 1:1 (1080x1080)
-    Ottimizzato per Instagram Post, Twitter, Mastodon, LinkedIn
-    Logo e waveform centrati verticalmente
+    Layout unificato per tutti i formati video
+    Utilizza configurazioni specifiche per ciascun formato passate tramite layout_config
     """
     progress_height = 0
 
-    # Header (12% altezza) - vuoto, senza titolo episodio
+    # Header
     header_top = progress_height
-    header_height = int(height * 0.12)
+    header_height = int(height * layout_config['header_ratio'])
     draw.rectangle([(0, header_top), (width, header_top + header_height)], fill=colors['primary'])
-    
-    # Area centrale (66% altezza) - più grande per square
+
+    # Area centrale
     central_top = header_top + header_height
-    central_height = int(height * 0.66)
+    central_height = int(height * layout_config['central_ratio'])
     central_bottom = central_top + central_height
 
     # Visualizzatore waveform CENTRATO VERTICALMENTE
@@ -441,7 +334,6 @@ def create_square_layout(img, draw, width, height, podcast_logo_path, podcast_ti
                 center_boost = 1.0 + (1.0 - distance_from_center / center_idx) * 0.4 if center_idx > 0 else 1.0
                 bar_amplitude = current_amplitude * sensitivities[i] * center_boost
 
-                # Altezza minima ridotta per avere barre più sottili quando non c'è suono
                 min_height = int(central_height * 0.03)
                 max_height = int(central_height * 0.70)
                 bar_height = int(min_height + (bar_amplitude * (max_height - min_height)))
@@ -457,7 +349,13 @@ def create_square_layout(img, draw, width, height, podcast_logo_path, podcast_ti
     # Logo podcast CENTRATO VERTICALMENTE
     if os.path.exists(podcast_logo_path):
         logo = Image.open(podcast_logo_path)
-        logo_size = int(min(width, central_height) * 0.5)
+
+        # Calcolo dimensione logo (horizontal ha logica diversa)
+        if 'logo_width_ratio' in layout_config:
+            logo_size = int(min(width * layout_config['logo_width_ratio'], central_height * layout_config['logo_size_ratio']))
+        else:
+            logo_size = int(min(width, central_height) * layout_config['logo_size_ratio'])
+
         logo = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
 
         # CENTRATO VERTICALMENTE al 50%
@@ -465,122 +363,12 @@ def create_square_layout(img, draw, width, height, podcast_logo_path, podcast_ti
         logo_y = central_top + (central_height - logo_size) // 2
         img.paste(logo, (logo_x, logo_y), logo if logo.mode == 'RGBA' else None)
 
-    # Footer (20% altezza) - vuoto, senza titolo podcast e CTA
+    # Footer
     footer_top = central_bottom
-    footer_height = int(height * 0.20)
-    footer_bottom = footer_top + footer_height
-    draw.rectangle([(0, footer_top), (width, footer_bottom)], fill=colors['primary'])
-
-    # Trascrizione in basso nell'area centrale
-    if transcript_chunks:
-        current_text = ""
-        for chunk in transcript_chunks:
-            if chunk['start'] <= current_time < chunk['end']:
-                current_text = chunk['text']
-                break
-
-        if current_text:
-            current_text = _strip_punctuation(current_text)
-            try:
-                font_transcript = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(height * 0.030))
-            except:
-                font_transcript = ImageFont.load_default()
-
-            transcript_y = central_bottom - int(central_height * 0.15)
-            style = _subtitle_default_style(colors)
-            style['max_lines'] = min(style.get('max_lines', 5), 3)  # per square al massimo 3 righe
-            max_width = int(width * style['width_ratio'])
-
-            img, _ = _render_subtitle_lines(
-                img,
-                draw,
-                current_text,
-                font_transcript,
-                transcript_y,
-                max_width,
-                style
-            )
-            draw = ImageDraw.Draw(img)
-
-    return img
-
-
-def create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcast_title, episode_title,
-                             waveform_data, current_time, transcript_chunks, audio_duration, colors):
-    """
-    Layout specifico per formato orizzontale 16:9 (1920x1080)
-    Ottimizzato per YouTube
-    Logo e waveform centrati verticalmente
-    """
-    progress_height = 0
-
-    # Header (15% altezza) - vuoto, senza titolo episodio
-    header_top = progress_height
-    header_height = int(height * 0.15)
-    draw.rectangle([(0, header_top), (width, header_top + header_height)], fill=colors['primary'])
-
-    # Area centrale (68% altezza)
-    central_top = header_top + header_height
-    central_height = int(height * 0.68)
-    central_bottom = central_top + central_height
-
-    # Waveform CENTRATA VERTICALMENTE
-    if waveform_data is not None and len(waveform_data) > 0:
-        bar_spacing = 3
-        bar_width = 12
-        total_bar_width = bar_width + bar_spacing
-
-        num_bars = width // total_bar_width
-        if num_bars % 2 != 0:
-            num_bars -= 1
-
-        if num_bars >= 2:
-            frame_idx = int((current_time / audio_duration) * len(waveform_data)) if audio_duration > 0 else 0
-            frame_idx = min(frame_idx, len(waveform_data) - 1)
-            current_amplitude = waveform_data[frame_idx]
-
-            np.random.seed(42)
-            sensitivities = np.random.uniform(0.6, 1.4, num_bars // 2)
-            sensitivities = np.concatenate([sensitivities, sensitivities[::-1]])
-
-            for i in range(num_bars):
-                x = i * total_bar_width
-
-                center_idx = num_bars // 2
-                distance_from_center = abs(i - center_idx)
-                center_boost = 1.0 + (1.0 - distance_from_center / center_idx) * 0.4 if center_idx > 0 else 1.0
-                bar_amplitude = current_amplitude * sensitivities[i] * center_boost
-
-                # Altezza minima ridotta per avere barre più sottili quando non c'è suono
-                min_height = int(central_height * 0.03)
-                max_height = int(central_height * 0.70)
-                bar_height = int(min_height + (bar_amplitude * (max_height - min_height)))
-                bar_height = max(min_height, min(bar_height, max_height))
-
-                # CENTRATA VERTICALMENTE al 50%
-                y_center = central_top + central_height // 2
-                y_top = y_center - bar_height // 2
-                y_bottom = y_center + bar_height // 2
-
-                draw.rectangle([(x, y_top), (x + bar_width, y_bottom)], fill=colors['primary'])
-
-    # Logo CENTRATO VERTICALMENTE
-    if os.path.exists(podcast_logo_path):
-        logo = Image.open(podcast_logo_path)
-        logo_size = int(min(width * 0.3, central_height * 0.6))
-        logo = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
-
-        # CENTRATO VERTICALMENTE al 50%
-        logo_x = (width - logo_size) // 2
-        logo_y = central_top + (central_height - logo_size) // 2
-        img.paste(logo, (logo_x, logo_y), logo if logo.mode == 'RGBA' else None)
-
-    # Footer (15% altezza) - vuoto, senza titolo podcast e CTA
-    footer_top = central_bottom
-    footer_height = height - footer_top
+    footer_height = int(height * layout_config['footer_ratio'])
     draw.rectangle([(0, footer_top), (width, height)], fill=colors['primary'])
 
-    # Trascrizione in basso nell'area centrale
+    # Trascrizione
     if transcript_chunks:
         current_text = ""
         for chunk in transcript_chunks:
@@ -591,14 +379,21 @@ def create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcas
         if current_text:
             current_text = _strip_punctuation(current_text)
             try:
-                font_transcript = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(height * 0.030))
+                font_transcript = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc",
+                                                     size=int(height * layout_config['transcript_font_size']))
             except:
                 font_transcript = ImageFont.load_default()
 
-            # Spostato leggermente più in basso per aumentare distanza dal logo
-            transcript_y = central_bottom - int(central_height * 0.12)
+            # Posizionamento trascrizione: per square e horizontal dal basso, per vertical dall'alto
+            if layout_config['transcript_y_offset'] < 0.5:
+                # Dal basso (square, horizontal)
+                transcript_y = central_bottom - int(central_height * layout_config['transcript_y_offset'])
+            else:
+                # Dall'alto (vertical)
+                transcript_y = central_top + int(central_height * layout_config['transcript_y_offset'])
+
             style = _subtitle_default_style(colors)
-            style['max_lines'] = min(style.get('max_lines', 5), 2)  # per horizontal max 2 righe
+            style['max_lines'] = min(style.get('max_lines', 5), layout_config['max_lines'])
             max_width = int(width * style['width_ratio'])
 
             img, _ = _render_subtitle_lines(
@@ -613,6 +408,25 @@ def create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcas
             draw = ImageDraw.Draw(img)
 
     return img
+
+
+def create_layout(img, draw, width, height, podcast_logo_path, podcast_title, episode_title,
+                  waveform_data, current_time, transcript_chunks, audio_duration, colors, format_name='vertical'):
+    """
+    Crea il layout per il formato specificato
+
+    Args:
+        format_name: 'vertical', 'square', o 'horizontal'
+
+    Formati supportati:
+        - vertical: 9:16 (1080x1920) - Instagram Reels, Stories, YouTube Shorts, TikTok
+        - square: 1:1 (1080x1080) - Instagram Post, Twitter, Mastodon, LinkedIn
+        - horizontal: 16:9 (1920x1080) - YouTube
+    """
+    layout_config = LAYOUT_CONFIGS.get(format_name, LAYOUT_CONFIGS['vertical'])
+    return _create_unified_layout(img, draw, width, height, podcast_logo_path, podcast_title, episode_title,
+                                  waveform_data, current_time, transcript_chunks, audio_duration, colors,
+                                  layout_config)
 
 
 def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, episode_title,
@@ -653,24 +467,10 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
     img = Image.new('RGB', (width, height), colors['background'])
     draw = ImageDraw.Draw(img)
 
-    # Delega al layout specifico per il formato
-    if format_name == 'vertical':
-        img = create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_title,
-                                     episode_title, waveform_data, current_time, transcript_chunks,
-                                     audio_duration, colors)
-    elif format_name == 'square':
-        img = create_square_layout(img, draw, width, height, podcast_logo_path, podcast_title,
-                                   episode_title, waveform_data, current_time, transcript_chunks,
-                                   audio_duration, colors)
-    elif format_name == 'horizontal':
-        img = create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcast_title,
-                                       episode_title, waveform_data, current_time, transcript_chunks,
-                                       audio_duration, colors)
-    else:
-        # Default: usa vertical
-        img = create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_title,
-                                     episode_title, waveform_data, current_time, transcript_chunks,
-                                     audio_duration, colors)
+    # Crea il layout
+    img = create_layout(img, draw, width, height, podcast_logo_path, podcast_title,
+                       episode_title, waveform_data, current_time, transcript_chunks,
+                       audio_duration, colors, format_name)
 
     # Assicurati che l'array sia in RGB per MoviePy
     if img.mode != 'RGB':
@@ -756,5 +556,5 @@ def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
         audio_codec='aac',
         fps=fps,
         threads=4,
-        preset='medium'  # Bilancia velocità/qualità
+        preset='veryfast'  # Velocizza la creazione per video semplici
     )
