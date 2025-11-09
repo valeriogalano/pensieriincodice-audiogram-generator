@@ -383,13 +383,12 @@ python -m unittest tests.test_config.TestConfig.test_configuration_precedence -v
 
 - [x] Improve audiogram layout proportions
 - [x] Make audiogram graphics configurable
-- [ ] Add AI-powered soundbite extraction
-- [ ] Add AI transcription if not present in the feed
 - [x] Allow configuration for multiple podcasts via config file
 - [x] Implement test suite to verify configuration mechanisms
 - [x] Translate documentation, comments, etc. into English
 - [ ] Better document subtitles configuration capabilities
 - [ ] Make podcast title presence configurable
+- [ ] Allow select which format generate
 
 ## License
 
