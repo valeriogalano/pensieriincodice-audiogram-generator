@@ -267,7 +267,7 @@ def get_waveform_data(audio_path, fps=24):
 
 
 def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_title, episode_title,
-                           waveform_data, current_time, transcript_chunks, audio_duration, colors, cta_text, safe_area=None, debug_draw_safe_area=False, apply_safe_area_to_visuals=False):
+                           waveform_data, current_time, transcript_chunks, audio_duration, colors, safe_area=None, debug_draw_safe_area=False, apply_safe_area_to_visuals=False):
     """
     Layout specifico per formato verticale 9:16 (1080x1920)
     Ottimizzato per Instagram Reels, Stories, YouTube Shorts, TikTok
@@ -292,65 +292,10 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
         img = Image.alpha_composite(img, overlay)
         draw = ImageDraw.Draw(img)
 
-    # Header (17% altezza) - aumentato per ospitare 3 righe di titolo
+    # Header (17% altezza) - vuoto, senza titolo episodio
     header_top = progress_height
     header_height = int(height * 0.17)
     draw.rectangle([(0, header_top), (width, header_top + header_height)], fill=colors['primary'])
-
-    # Titolo episodio nel header (con word wrap su 3 righe)
-    try:
-        font_header = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(header_height * 0.17))
-    except:
-        font_header = ImageFont.load_default()
-
-    # Word wrap del titolo su max 3 righe, entro la safe area orizzontale
-    max_header_width = min(int(width * 0.90), max(50, safe_right - safe_left))
-    words = episode_title.split()
-    lines = []
-    current_line = ""
-
-    for word in words:
-        test_line = current_line + word + " " if current_line else word + " "
-        bbox = draw.textbbox((0, 0), test_line, font=font_header)
-        test_width = bbox[2] - bbox[0]
-
-        if test_width <= max_header_width:
-            current_line = test_line
-        else:
-            if current_line:
-                lines.append(current_line.strip())
-                current_line = word + " "
-            else:
-                # Parola singola troppo lunga, la tronchiamo
-                current_line = word[:30] + "... "
-                lines.append(current_line.strip())
-                current_line = ""
-
-    if current_line:
-        lines.append(current_line.strip())
-
-    # Limita a 3 righe, troncando la terza se necessario
-    lines = lines[:3]
-    if len(lines) == 3:
-        bbox = draw.textbbox((0, 0), lines[2], font=font_header)
-        while (bbox[2] - bbox[0]) > max_header_width and len(lines[2]) > 3:
-            lines[2] = lines[2][:-4] + "..."
-            bbox = draw.textbbox((0, 0), lines[2], font=font_header)
-
-    # Disegna le righe centrate, posizionate più in basso
-    bbox_sample = draw.textbbox((0, 0), "Test", font=font_header)
-    line_height = bbox_sample[3] - bbox_sample[1]
-    total_height = int(len(lines) * line_height * HEADER_LINE_SPACING)
-    start_y = header_top + int(header_height * 0.65) - int(total_height // 2)
-
-    for i, line in enumerate(lines):
-        bbox = draw.textbbox((0, 0), line, font=font_header)
-        line_width = bbox[2] - bbox[0]
-        # Centra rispettando i limiti orizzontali della safe area
-        line_x_center = (width - line_width) // 2
-        line_x = max(safe_left, min(line_x_center, safe_right - line_width))
-        line_y = start_y + int(i * line_height * HEADER_LINE_SPACING)
-        _draw_text_with_stroke(draw, (line_x, line_y), line, font_header, colors['text'], stroke_width=3)
 
     # Area centrale (54% altezza) - ridotta per compensare l'header più grande
     central_top = header_top + header_height
@@ -449,151 +394,11 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
         logo_y = central_top + int(central_height * 0.35) - logo_size // 2
         img.paste(logo, (logo_x, logo_y), logo if logo.mode == 'RGBA' else None)
 
-    # Footer (27% altezza) - aumentato per ospitare podcast title + CTA
+    # Footer (27% altezza) - vuoto, senza titolo podcast e CTA
     footer_top = central_bottom
     footer_height = int(height * 0.27)
     footer_bottom = footer_top + footer_height
     draw.rectangle([(0, footer_top), (width, footer_bottom)], fill=colors['primary'])
-
-    # Titolo podcast nel footer
-    try:
-        font_title = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(footer_height * 0.12))
-    except:
-        font_title = ImageFont.load_default()
-
-    # Podcast title centrato nella parte superiore del footer, ma clampato alla safe area orizzontale
-    bbox = draw.textbbox((0, 0), podcast_title, font=font_title)
-    title_width = bbox[2] - bbox[0]
-    title_height = bbox[3] - bbox[1]
-    title_x_center = (width - title_width) // 2
-    title_x = max(safe_left, min(title_x_center, safe_right - title_width))
-    title_y = footer_top + int(footer_height * 0.15)
-    # Evita di sforare il bordo inferiore sicuro
-    if title_y + title_height > safe_bottom:
-        title_y = max(safe_top, safe_bottom - title_height - int(footer_height * 0.05))
-    _draw_text_with_stroke(draw, (title_x, title_y), podcast_title, font_title, colors['text'], stroke_width=3)
-
-    # Call-to-action sotto il titolo del podcast (rispetta SEMPRE la safe area con word-wrap)
-    if cta_text:  # Mostra solo se specificato
-        # Parametri leggibili: più wrap, meno shrink
-        CTA_MAX_LINES = 3  # prima proviamo fino a 3 righe
-        SPACING = 1.25
-        base_size = int(footer_height * 0.12)
-        min_size = max(12, int(footer_height * 0.10))  # non scendere troppo: leggibilità
-        try:
-            font_cta = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=base_size)
-        except:
-            font_cta = ImageFont.load_default()
-
-        # Limiti di layout entro safe area
-        max_cta_width = max(50, safe_right - safe_left)
-        y_min = title_y + title_height + int(footer_height * 0.14)  # distanza dal titolo leggermente maggiore
-        y_max = safe_bottom - int(footer_height * 0.06)
-        available_h = max(0, y_max - y_min)
-
-        def wrap_paragraph(draw_obj, text, font_obj, max_w):
-            # Word-wrap che preserva spazi singoli tra parole e rispetta le parole brevi
-            words = text.split()
-            lines_local = []
-            cur = ""
-            for w in words:
-                test = (cur + (" " if cur else "") + w)
-                bb = draw_obj.textbbox((0, 0), test, font=font_obj)
-                if (bb[2] - bb[0]) <= max_w:
-                    cur = test
-                else:
-                    if cur:
-                        lines_local.append(cur)
-                        cur = w
-                    else:
-                        # parola lunghissima: tronca con ellissi
-                        lines_local.append((w[:30] + "..."))
-                        cur = ""
-            if cur:
-                lines_local.append(cur)
-            return lines_local
-
-        def wrap_cta(draw_obj, text, font_obj, max_w):
-            # Supporta i ritorni a capo manuali (\n)
-            paragraphs = text.split("\n")
-            lines_all = []
-            for p in paragraphs:
-                lines_all.extend(wrap_paragraph(draw_obj, p.strip(), font_obj, max_w))
-            return lines_all
-
-        # Primo tentativo con dimensione base
-        lines = wrap_cta(draw, cta_text, font_cta, max_cta_width)
-        # Calcola altezza blocco
-        sample_bbox = draw.textbbox((0, 0), "Ag", font=font_cta)
-        line_h = sample_bbox[3] - sample_bbox[1]
-        spacing = SPACING
-        block_h = int(len(lines) * line_h * spacing)
-
-        # Strategia: prima riduci al massimo il numero di righe in eccesso a CTA_MAX_LINES unendo e tronacando l'ultima,
-        # poi, solo se serve, riduci leggermente il font ma non sotto min_size.
-        def compress_to_max_lines(lines_list, font_obj):
-            if len(lines_list) <= CTA_MAX_LINES:
-                return lines_list
-            # Unisci tutto dalla riga (CTA_MAX_LINES-1) in poi in una sola
-            head = lines_list[:CTA_MAX_LINES-1]
-            tail = " ".join(lines_list[CTA_MAX_LINES-1:])
-            # Tronca tail per entrare nella larghezza
-            bb = draw.textbbox((0, 0), tail, font=font_obj)
-            while (bb[2] - bb[0]) > max_cta_width and len(tail) > 3:
-                tail = tail[:-4] + "..."
-                bb = draw.textbbox((0, 0), tail, font=font_obj)
-            return head + [tail]
-
-        lines = compress_to_max_lines(lines, font_cta)
-        block_h = int(len(lines) * line_h * spacing)
-
-        # Riduci font SOLO se il blocco non ci sta in altezza
-        size_iter = base_size
-        while block_h > available_h and size_iter > min_size:
-            size_iter -= 2
-            try:
-                font_cta = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=size_iter)
-            except:
-                font_cta = ImageFont.load_default()
-            # Ricalcola misure con il nuovo font (mantieni lo stesso numero di righe)
-            sample_bbox = draw.textbbox((0, 0), "Ag", font=font_cta)
-            line_h = sample_bbox[3] - sample_bbox[1]
-            # Se qualche riga sfora in larghezza, rifai wrap + compress
-            test_lines = wrap_cta(draw, cta_text, font_cta, max_cta_width)
-            test_lines = compress_to_max_lines(test_lines, font_cta)
-            lines = test_lines
-            block_h = int(len(lines) * line_h * spacing)
-
-        # Posizionamento verticale: prova ad allineare appena sotto il titolo, clampando al fondo della safe area
-        # Importante: NON salire mai sopra y_min, per evitare sovrapposizione con il titolo del podcast
-        cta_y_start = y_min
-        if block_h > available_h:
-            # Ultima difesa: riduci leggermente lo spacing ma non sotto 1.1
-            spacing = max(1.1, spacing - 0.1)
-            block_h = int(len(lines) * line_h * spacing)
-            if block_h > available_h:
-                # Allinea il blocco al fondo della safe area ma garantisci un gap minimo dal titolo
-                cta_y_start = max(y_min, y_max - block_h)
-
-        # Disegna le righe centrate entro la safe area
-        for i, line in enumerate(lines):
-            # Calcola padding dinamico per rispettare la safe area includendo la pill
-            bb = draw.textbbox((0, 0), line, font=font_cta)
-            lw = bb[2] - bb[0]
-            max_total_w = max(50, safe_right - safe_left)
-            # padding laterale: spazio rimanente/2 meno qualche px di margine
-            pad_x = max(14, min(40, (max_total_w - lw) // 2 - 6))
-            center_x = (safe_left + safe_right) // 2
-            line_y = cta_y_start + int(i * line_h * spacing)
-            # Disegna pill bianca con testo nero per contrasto su arancione
-            pill_color = (255, 255, 255, 235)
-            text_color = (10, 10, 10)
-            img, _, _ = _draw_pill_with_text(
-                img, draw, line, font_cta, center_x, line_y,
-                padding_x=pad_x, padding_y=8, pill_color=pill_color,
-                radius=20, shadow=True, text_color=text_color, stroke_width=0
-            )
-            draw = ImageDraw.Draw(img)
 
     # Trascrizione in tempo reale (sopra il footer, nell'area centrale bassa)
     if transcript_chunks:
@@ -655,7 +460,7 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
 
 
 def create_square_layout(img, draw, width, height, podcast_logo_path, podcast_title, episode_title,
-                         waveform_data, current_time, transcript_chunks, audio_duration, colors, cta_text):
+                         waveform_data, current_time, transcript_chunks, audio_duration, colors):
     """
     Layout specifico per formato quadrato 1:1 (1080x1080)
     Ottimizzato per Instagram Post, Twitter, Mastodon, LinkedIn
@@ -663,62 +468,10 @@ def create_square_layout(img, draw, width, height, podcast_logo_path, podcast_ti
     """
     progress_height = 0
 
-    # Header (12% altezza) - più piccolo per square
+    # Header (12% altezza) - vuoto, senza titolo episodio
     header_top = progress_height
     header_height = int(height * 0.12)
     draw.rectangle([(0, header_top), (width, header_top + header_height)], fill=colors['primary'])
-
-    # Titolo episodio nel header (2 righe max per square)
-    try:
-        font_header = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(header_height * 0.22))
-    except:
-        font_header = ImageFont.load_default()
-
-    # Word wrap del titolo su max 2 righe
-    max_header_width = int(width * 0.90)
-    words = episode_title.split()
-    lines = []
-    current_line = ""
-
-    for word in words:
-        test_line = current_line + word + " " if current_line else word + " "
-        bbox = draw.textbbox((0, 0), test_line, font=font_header)
-        test_width = bbox[2] - bbox[0]
-
-        if test_width <= max_header_width:
-            current_line = test_line
-        else:
-            if current_line:
-                lines.append(current_line.strip())
-                current_line = word + " "
-            else:
-                current_line = word[:30] + "... "
-                lines.append(current_line.strip())
-                current_line = ""
-
-    if current_line:
-        lines.append(current_line.strip())
-
-    # Limita a 2 righe per square
-    lines = lines[:2]
-    if len(lines) == 2:
-        bbox = draw.textbbox((0, 0), lines[1], font=font_header)
-        while (bbox[2] - bbox[0]) > max_header_width and len(lines[1]) > 3:
-            lines[1] = lines[1][:-4] + "..."
-            bbox = draw.textbbox((0, 0), lines[1], font=font_header)
-
-    # Disegna le righe centrate
-    bbox_sample = draw.textbbox((0, 0), "Test", font=font_header)
-    line_height = bbox_sample[3] - bbox_sample[1]
-    total_height = int(len(lines) * line_height * HEADER_LINE_SPACING)
-    start_y = header_top + int(header_height * 0.50) - int(total_height // 2)
-
-    for i, line in enumerate(lines):
-        bbox = draw.textbbox((0, 0), line, font=font_header)
-        line_width = bbox[2] - bbox[0]
-        line_x = (width - line_width) // 2
-        line_y = start_y + int(i * line_height * HEADER_LINE_SPACING)
-        _draw_text_with_stroke(draw, (line_x, line_y), line, font_header, colors['text'], stroke_width=3)
     
     # Area centrale (66% altezza) - più grande per square
     central_top = header_top + header_height
@@ -776,43 +529,11 @@ def create_square_layout(img, draw, width, height, podcast_logo_path, podcast_ti
         logo_y = central_top + (central_height - logo_size) // 2
         img.paste(logo, (logo_x, logo_y), logo if logo.mode == 'RGBA' else None)
 
-    # Footer (20% altezza)
+    # Footer (20% altezza) - vuoto, senza titolo podcast e CTA
     footer_top = central_bottom
     footer_height = int(height * 0.20)
     footer_bottom = footer_top + footer_height
     draw.rectangle([(0, footer_top), (width, footer_bottom)], fill=colors['primary'])
-
-    # Titolo podcast nel footer - font ingrandito
-    try:
-        font_title = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(footer_height * 0.18))
-    except:
-        font_title = ImageFont.load_default()
-
-    bbox = draw.textbbox((0, 0), podcast_title, font=font_title)
-    title_width = bbox[2] - bbox[0]
-    title_height = bbox[3] - bbox[1]
-    title_x = (width - title_width) // 2
-    title_y = footer_top + int(footer_height * 0.20)
-    _draw_text_with_stroke(draw, (title_x, title_y), podcast_title, font_title, colors['text'], stroke_width=3)
-
-    # Call-to-action sotto il titolo - font ingrandito
-    if cta_text:
-        try:
-            font_cta = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(footer_height * 0.13))
-        except:
-            font_cta = ImageFont.load_default()
-
-        # Pill arrotondata bianca con testo scuro per massimo contrasto
-        cta_y = title_y + title_height + int(footer_height * 0.15)
-        center_x = width // 2
-        pill_color = (255, 255, 255, 235)
-        text_color = (10, 10, 10)
-        img, _, _ = _draw_pill_with_text(
-            img, draw, cta_text, font_cta, center_x, cta_y,
-            padding_x=28, padding_y=10, pill_color=pill_color, radius=22, shadow=True,
-            text_color=text_color, stroke_width=0
-        )
-        draw = ImageDraw.Draw(img)
 
     # Trascrizione in basso nell'area centrale
     if transcript_chunks:
@@ -849,7 +570,7 @@ def create_square_layout(img, draw, width, height, podcast_logo_path, podcast_ti
 
 
 def create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcast_title, episode_title,
-                             waveform_data, current_time, transcript_chunks, audio_duration, colors, cta_text):
+                             waveform_data, current_time, transcript_chunks, audio_duration, colors):
     """
     Layout specifico per formato orizzontale 16:9 (1920x1080)
     Ottimizzato per YouTube
@@ -857,59 +578,10 @@ def create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcas
     """
     progress_height = 0
 
-    # Header (15% altezza)
+    # Header (15% altezza) - vuoto, senza titolo episodio
     header_top = progress_height
     header_height = int(height * 0.15)
     draw.rectangle([(0, header_top), (width, header_top + header_height)], fill=colors['primary'])
-
-    # Titolo episodio nel header (2 righe max)
-    try:
-        font_header = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(header_height * 0.25))
-    except:
-        font_header = ImageFont.load_default()
-
-    max_header_width = int(width * 0.90)
-    words = episode_title.split()
-    lines = []
-    current_line = ""
-
-    for word in words:
-        test_line = current_line + word + " " if current_line else word + " "
-        bbox = draw.textbbox((0, 0), test_line, font=font_header)
-        test_width = bbox[2] - bbox[0]
-
-        if test_width <= max_header_width:
-            current_line = test_line
-        else:
-            if current_line:
-                lines.append(current_line.strip())
-                current_line = word + " "
-            else:
-                current_line = word[:30] + "... "
-                lines.append(current_line.strip())
-                current_line = ""
-
-    if current_line:
-        lines.append(current_line.strip())
-
-    lines = lines[:2]
-    if len(lines) == 2:
-        bbox = draw.textbbox((0, 0), lines[1], font=font_header)
-        while (bbox[2] - bbox[0]) > max_header_width and len(lines[1]) > 3:
-            lines[1] = lines[1][:-4] + "..."
-            bbox = draw.textbbox((0, 0), lines[1], font=font_header)
-
-    bbox_sample = draw.textbbox((0, 0), "Test", font=font_header)
-    line_height = bbox_sample[3] - bbox_sample[1]
-    total_height = int(len(lines) * line_height * HEADER_LINE_SPACING)
-    start_y = header_top + int(header_height * 0.50) - int(total_height // 2)
-
-    for i, line in enumerate(lines):
-        bbox = draw.textbbox((0, 0), line, font=font_header)
-        line_width = bbox[2] - bbox[0]
-        line_x = (width - line_width) // 2
-        line_y = start_y + i * int(line_height * 1.35)
-        _draw_text_with_stroke(draw, (line_x, line_y), line, font_header, colors['text'], stroke_width=3)
 
     # Area centrale (68% altezza)
     central_top = header_top + header_height
@@ -967,42 +639,10 @@ def create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcas
         logo_y = central_top + (central_height - logo_size) // 2
         img.paste(logo, (logo_x, logo_y), logo if logo.mode == 'RGBA' else None)
 
-    # Footer (15% altezza)
+    # Footer (15% altezza) - vuoto, senza titolo podcast e CTA
     footer_top = central_bottom
     footer_height = height - footer_top
     draw.rectangle([(0, footer_top), (width, height)], fill=colors['primary'])
-
-    # Titolo podcast
-    try:
-        font_title = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(footer_height * 0.20))
-    except:
-        font_title = ImageFont.load_default()
-
-    bbox = draw.textbbox((0, 0), podcast_title, font=font_title)
-    title_width = bbox[2] - bbox[0]
-    title_height = bbox[3] - bbox[1]
-    title_x = (width - title_width) // 2
-    title_y = footer_top + int(footer_height * 0.25)
-    _draw_text_with_stroke(draw, (title_x, title_y), podcast_title, font_title, colors['text'], stroke_width=3)
-
-    # Call-to-action
-    if cta_text:
-        try:
-            font_cta = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", size=int(footer_height * 0.14))
-        except:
-            font_cta = ImageFont.load_default()
-
-        # CTA come pill arrotondata per coerenza con gli altri formati
-        cta_y = title_y + title_height + int(footer_height * 0.15)
-        center_x = width // 2
-        pill_color = (255, 255, 255, 235)
-        text_color = (10, 10, 10)
-        img, _, _ = _draw_pill_with_text(
-            img, draw, cta_text, font_cta, center_x, cta_y,
-            padding_x=28, padding_y=10, pill_color=pill_color, radius=22, shadow=True,
-            text_color=text_color, stroke_width=0
-        )
-        draw = ImageDraw.Draw(img)
 
     # Trascrizione in basso nell'area centrale
     if transcript_chunks:
@@ -1040,7 +680,7 @@ def create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcas
 
 
 def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, episode_title,
-                           waveform_data, current_time, transcript_chunks, audio_duration, formats=None, colors=None, cta_text=None, format_name='vertical'):
+                           waveform_data, current_time, transcript_chunks, audio_duration, formats=None, colors=None, format_name='vertical'):
     """
     Crea un singolo frame dell'audiogram delegando al layout specifico per formato
 
@@ -1054,7 +694,6 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
         transcript_chunks: Lista di chunk di trascrizione con timing
         audio_duration: Durata totale dell'audio
         colors: Dizionario con i colori personalizzati (opzionale)
-        cta_text: Testo della call-to-action (opzionale)
         format_name: Nome del formato ('vertical', 'square', 'horizontal')
     """
     # Usa colori di default o personalizzati
@@ -1092,20 +731,20 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
             debug_draw = bool(fmt_cfg.get('debug_draw_safe_area', False))
         img = create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_title,
                                      episode_title, waveform_data, current_time, transcript_chunks,
-                                     audio_duration, colors, cta_text, safe_area=safe_area, debug_draw_safe_area=debug_draw)
+                                     audio_duration, colors, safe_area=safe_area, debug_draw_safe_area=debug_draw)
     elif format_name == 'square':
         img = create_square_layout(img, draw, width, height, podcast_logo_path, podcast_title,
                                    episode_title, waveform_data, current_time, transcript_chunks,
-                                   audio_duration, colors, cta_text)
+                                   audio_duration, colors)
     elif format_name == 'horizontal':
         img = create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcast_title,
                                        episode_title, waveform_data, current_time, transcript_chunks,
-                                       audio_duration, colors, cta_text)
+                                       audio_duration, colors)
     else:
         # Default: usa vertical
         img = create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_title,
                                      episode_title, waveform_data, current_time, transcript_chunks,
-                                     audio_duration, colors, cta_text)
+                                     audio_duration, colors)
 
     # Assicurati che l'array sia in RGB per MoviePy
     if img.mode != 'RGB':
@@ -1115,7 +754,7 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
 
 def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
                       podcast_title, episode_title, transcript_chunks, duration,
-                      formats=None, colors=None, cta_text=None,
+                      formats=None, colors=None,
                       show_subtitles=True):
     """
     Genera un video audiogram completo
@@ -1131,7 +770,6 @@ def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
         duration: Durata del video
         formats: Dizionario con i formati personalizzati (opzionale)
         colors: Dizionario con i colori personalizzati (opzionale)
-        cta_text: Testo della call-to-action (opzionale)
     """
     # Usa formati personalizzati o di default
     if formats is None or format_name not in formats:
@@ -1172,7 +810,6 @@ def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
             duration,
             formats,
             colors,
-            cta_text,
             format_name,  # Passa il formato per usare il layout corretto
         )
 
