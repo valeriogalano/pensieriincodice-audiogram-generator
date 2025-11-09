@@ -343,7 +343,7 @@ def parse_soundbite_selection(value, max_soundbites: int) -> List[int]:
     raise ValueError('Formato soundbite non supportato')
 
 
-def process_one_episode(selected, podcast_info, colors, formats_config, config_hashtags, cta_text, show_progress_bar, show_subtitles, output_dir, soundbites_choice, dry_run=False):
+def process_one_episode(selected, podcast_info, colors, formats_config, config_hashtags, cta_text, show_subtitles, output_dir, soundbites_choice, dry_run=False):
     print(f"\nEpisodio {selected['number']}: {selected['title']}")
     if selected['audio_url']:
         print(f"Audio: {selected['audio_url']}")
@@ -497,7 +497,6 @@ def process_one_episode(selected, podcast_info, colors, formats_config, config_h
                             formats_config,
                             colors,
                             cta_text,
-                            show_progress_bar,
                             show_subtitles
                         )
 
@@ -621,7 +620,6 @@ def process_one_episode(selected, podcast_info, colors, formats_config, config_h
                                 formats_config,
                                 colors,
                                 cta_text,
-                                show_progress_bar,
                                 show_subtitles
                             )
 
@@ -699,7 +697,6 @@ def main():
     formats_config = config.get('formats')
     config_hashtags = config.get('hashtags', [])
     cta_text = config.get('cta_text')
-    show_progress_bar = config.get('show_progress_bar', False)
     show_subtitles = config.get('show_subtitles', True)
     dry_run = config.get('dry_run', False)
 
@@ -777,7 +774,6 @@ def main():
             formats_config=formats_config,
             config_hashtags=config_hashtags,
             cta_text=cta_text,
-            show_progress_bar=show_progress_bar,
             show_subtitles=show_subtitles,
             output_dir=output_dir,
             soundbites_choice=soundbites_choice,
@@ -921,7 +917,6 @@ def main():
                             formats_config,
                             colors,
                             cta_text,
-                            show_progress_bar,
                             show_subtitles
                         )
 
@@ -1061,7 +1056,6 @@ def main():
                                 formats_config,
                                 colors,
                                 cta_text,
-                                show_progress_bar,
                                 show_subtitles
                             )
 

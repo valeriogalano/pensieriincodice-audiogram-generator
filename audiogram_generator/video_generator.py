@@ -267,24 +267,12 @@ def get_waveform_data(audio_path, fps=24):
 
 
 def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_title, episode_title,
-                           waveform_data, current_time, transcript_chunks, audio_duration, colors, cta_text, show_progress_bar=False, safe_area=None, debug_draw_safe_area=False, apply_safe_area_to_visuals=False):
+                           waveform_data, current_time, transcript_chunks, audio_duration, colors, cta_text, safe_area=None, debug_draw_safe_area=False, apply_safe_area_to_visuals=False):
     """
     Layout specifico per formato verticale 9:16 (1080x1920)
     Ottimizzato per Instagram Reels, Stories, YouTube Shorts, TikTok
     """
-    # Progress bar (2% altezza) - opzionale
     progress_height = 0
-    if show_progress_bar:
-        progress_height = int(height * 0.02)
-        progress_percent = current_time / audio_duration if audio_duration > 0 else 0
-        progress_width = int(width * progress_percent)
-
-        # Background della progress bar (arancione scuro)
-        draw.rectangle([(0, 0), (width, progress_height)], fill=colors['primary'])
-        # Riempimento progress (beige che avanza)
-        if progress_width > 0:
-            draw.rectangle([(0, 0), (progress_width, progress_height)], fill=colors['background'])
-
     # Safe area (insets) calcolata una volta
     sa = safe_area or {}
     safe_left = int(sa.get('left', 0))
@@ -667,24 +655,13 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
 
 
 def create_square_layout(img, draw, width, height, podcast_logo_path, podcast_title, episode_title,
-                         waveform_data, current_time, transcript_chunks, audio_duration, colors, cta_text, show_progress_bar=False):
+                         waveform_data, current_time, transcript_chunks, audio_duration, colors, cta_text):
     """
     Layout specifico per formato quadrato 1:1 (1080x1080)
     Ottimizzato per Instagram Post, Twitter, Mastodon, LinkedIn
     Logo e waveform centrati verticalmente
     """
-    # Progress bar (2% altezza) - opzionale
     progress_height = 0
-    if show_progress_bar:
-        progress_height = int(height * 0.02)
-        progress_percent = current_time / audio_duration if audio_duration > 0 else 0
-        progress_width = int(width * progress_percent)
-
-        # Background della progress bar (arancione)
-        draw.rectangle([(0, 0), (width, progress_height)], fill=colors['primary'])
-        # Riempimento progress (beige che avanza)
-        if progress_width > 0:
-            draw.rectangle([(0, 0), (progress_width, progress_height)], fill=colors['background'])
 
     # Header (12% altezza) - più piccolo per square
     header_top = progress_height
@@ -872,22 +849,13 @@ def create_square_layout(img, draw, width, height, podcast_logo_path, podcast_ti
 
 
 def create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcast_title, episode_title,
-                             waveform_data, current_time, transcript_chunks, audio_duration, colors, cta_text, show_progress_bar=False):
+                             waveform_data, current_time, transcript_chunks, audio_duration, colors, cta_text):
     """
     Layout specifico per formato orizzontale 16:9 (1920x1080)
     Ottimizzato per YouTube
     Logo e waveform centrati verticalmente
     """
-    # Progress bar (2% altezza) - opzionale
     progress_height = 0
-    if show_progress_bar:
-        progress_height = int(height * 0.02)
-        progress_percent = current_time / audio_duration if audio_duration > 0 else 0
-        progress_width = int(width * progress_percent)
-
-        draw.rectangle([(0, 0), (width, progress_height)], fill=colors['primary'])
-        if progress_width > 0:
-            draw.rectangle([(0, 0), (progress_width, progress_height)], fill=colors['background'])
 
     # Header (15% altezza)
     header_top = progress_height
@@ -1072,7 +1040,7 @@ def create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcas
 
 
 def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, episode_title,
-                           waveform_data, current_time, transcript_chunks, audio_duration, formats=None, colors=None, cta_text=None, format_name='vertical', show_progress_bar=False):
+                           waveform_data, current_time, transcript_chunks, audio_duration, formats=None, colors=None, cta_text=None, format_name='vertical'):
     """
     Crea un singolo frame dell'audiogram delegando al layout specifico per formato
 
@@ -1088,7 +1056,6 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
         colors: Dizionario con i colori personalizzati (opzionale)
         cta_text: Testo della call-to-action (opzionale)
         format_name: Nome del formato ('vertical', 'square', 'horizontal')
-        show_progress_bar: Mostra la progress bar in cima (opzionale, default False)
     """
     # Usa colori di default o personalizzati
     if colors is None:
@@ -1125,20 +1092,20 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
             debug_draw = bool(fmt_cfg.get('debug_draw_safe_area', False))
         img = create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_title,
                                      episode_title, waveform_data, current_time, transcript_chunks,
-                                     audio_duration, colors, cta_text, show_progress_bar, safe_area=safe_area, debug_draw_safe_area=debug_draw)
+                                     audio_duration, colors, cta_text, safe_area=safe_area, debug_draw_safe_area=debug_draw)
     elif format_name == 'square':
         img = create_square_layout(img, draw, width, height, podcast_logo_path, podcast_title,
                                    episode_title, waveform_data, current_time, transcript_chunks,
-                                   audio_duration, colors, cta_text, show_progress_bar)
+                                   audio_duration, colors, cta_text)
     elif format_name == 'horizontal':
         img = create_horizontal_layout(img, draw, width, height, podcast_logo_path, podcast_title,
                                        episode_title, waveform_data, current_time, transcript_chunks,
-                                       audio_duration, colors, cta_text, show_progress_bar)
+                                       audio_duration, colors, cta_text)
     else:
         # Default: usa vertical
         img = create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_title,
                                      episode_title, waveform_data, current_time, transcript_chunks,
-                                     audio_duration, colors, cta_text, show_progress_bar)
+                                     audio_duration, colors, cta_text)
 
     # Assicurati che l'array sia in RGB per MoviePy
     if img.mode != 'RGB':
@@ -1148,7 +1115,7 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
 
 def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
                       podcast_title, episode_title, transcript_chunks, duration,
-                      formats=None, colors=None, cta_text=None, show_progress_bar=False,
+                      formats=None, colors=None, cta_text=None,
                       show_subtitles=True):
     """
     Genera un video audiogram completo
@@ -1165,7 +1132,6 @@ def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
         formats: Dizionario con i formati personalizzati (opzionale)
         colors: Dizionario con i colori personalizzati (opzionale)
         cta_text: Testo della call-to-action (opzionale)
-        show_progress_bar: Mostra la progress bar in cima (opzionale, default False)
     """
     # Usa formati personalizzati o di default
     if formats is None or format_name not in formats:
@@ -1208,7 +1174,6 @@ def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
             colors,
             cta_text,
             format_name,  # Passa il formato per usare il layout corretto
-            show_progress_bar  # Passa il flag progress bar
         )
 
     # Crea video clip

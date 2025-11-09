@@ -83,11 +83,6 @@ hashtags:
 # Default: "Ascolta l'episodio completo su pensieriincodice.it"
 cta_text: "Ascolta l'episodio completo su pensieriincodice.it"
 
-# Progress bar (opzionale)
-# Mostra una barra di avanzamento in cima al video
-# Default: false
-show_progress_bar: false
-
 # Sottotitoli (opzionale)
 # Brucia i sottotitoli direttamente sul video
 # Default: true
