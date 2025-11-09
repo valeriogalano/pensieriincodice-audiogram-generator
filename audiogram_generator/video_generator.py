@@ -92,8 +92,8 @@ def _draw_rounded_box_with_shadow(base_img, box, fill, radius=16, shadow=True, s
     return base_img
 
 
-def _render_subtitle_lines(img, draw, text, font, start_y, max_width, style, x_bounds=None):
-    """Esegue il word wrap e disegna le righe di sottotitoli più gradevoli entro un'area orizzontale opzionale.
+def _render_subtitle_lines(img, draw, text, font, start_y, max_width, style):
+    """Esegue il word wrap e disegna le righe di sottotitoli più gradevoli.
     Ritorna (img, total_height_disegnata).
 
     Nota: la spaziatura verticale tra le righe usa un'altezza di riga costante
@@ -120,20 +120,10 @@ def _render_subtitle_lines(img, draw, text, font, start_y, max_width, style, x_b
 
     padding = int(style.get('padding', 0))
 
-    # Limiti orizzontali per il centraggio entro safe area
-    if x_bounds is not None:
-        left_bound = max(0, int(x_bounds[0]))
-        right_bound = min(img.width, int(x_bounds[1]))
-        # Riduci i bounds per includere il padding del box, così il box non esce dalla safe area
-        inner_left = min(max(left_bound + padding, 0), img.width)
-        inner_right = max(min(right_bound - padding, img.width), 0)
-        if inner_right < inner_left:
-            inner_left, inner_right = inner_right, inner_left  # fallback
-        area_width = max(1, inner_right - inner_left)
-    else:
-        inner_left = 0 + padding
-        inner_right = img.width - padding
-        area_width = max(1, inner_right - inner_left)
+    # Limiti orizzontali per il centraggio
+    inner_left = 0 + padding
+    inner_right = img.width - padding
+    area_width = max(1, inner_right - inner_left)
 
     # Calcola altezza di riga costante basata sul font
     try:
@@ -267,30 +257,12 @@ def get_waveform_data(audio_path, fps=24):
 
 
 def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_title, episode_title,
-                           waveform_data, current_time, transcript_chunks, audio_duration, colors, safe_area=None, debug_draw_safe_area=False, apply_safe_area_to_visuals=False):
+                           waveform_data, current_time, transcript_chunks, audio_duration, colors):
     """
     Layout specifico per formato verticale 9:16 (1080x1920)
     Ottimizzato per Instagram Reels, Stories, YouTube Shorts, TikTok
     """
     progress_height = 0
-    # Safe area (insets) calcolata una volta
-    sa = safe_area or {}
-    safe_left = int(sa.get('left', 0))
-    safe_right = width - int(sa.get('right', 0))
-    safe_top = int(sa.get('top', 0))
-    safe_bottom = height - int(sa.get('bottom', 0))
-
-    # Debug: disegna il rettangolo della safe area
-    if debug_draw_safe_area:
-        dbg_color = (0, 255, 0)
-        dbg_alpha = 60
-        overlay = Image.new('RGBA', img.size, (0, 0, 0, 0))
-        o = ImageDraw.Draw(overlay)
-        o.rectangle([(safe_left, safe_top), (safe_right, safe_bottom)], outline=dbg_color + (255,), width=4, fill=(0, 255, 0, dbg_alpha))
-        if img.mode != 'RGBA':
-            img = img.convert('RGBA')
-        img = Image.alpha_composite(img, overlay)
-        draw = ImageDraw.Draw(img)
 
     # Header (17% altezza) - vuoto, senza titolo episodio
     header_top = progress_height
@@ -309,13 +281,8 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
         bar_width = 12
         total_bar_width = bar_width + bar_spacing
 
-        # Applica safe area orizzontale se richiesto
-        if apply_safe_area_to_visuals:
-            x_start = safe_left
-            available_width = max(0, safe_right - safe_left)
-        else:
-            x_start = 0
-            available_width = width
+        x_start = 0
+        available_width = width
 
         # Calcola quante bars entrano nella larghezza disponibile
         num_bars = available_width // total_bar_width
@@ -336,13 +303,9 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
             sensitivities = np.random.uniform(0.6, 1.4, num_bars // 2)
             sensitivities = np.concatenate([sensitivities, sensitivities[::-1]])  # Simmetria
 
-            # Area verticale disponibile per waveform entro la safe area (intersezione con area centrale)
-            if apply_safe_area_to_visuals:
-                avail_top = max(central_top, safe_top)
-                avail_bottom = min(central_bottom, safe_bottom)
-            else:
-                avail_top = central_top
-                avail_bottom = central_bottom
+            # Area verticale disponibile per waveform
+            avail_top = central_top
+            avail_bottom = central_bottom
             avail_height = max(0, avail_bottom - avail_top)
 
             # Disegna le bars da sinistra a destra
@@ -373,11 +336,6 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
                     y_center = central_top + int(central_height * 0.40)
                 y_top = y_center - bar_height // 2
                 y_bottom = y_center + bar_height // 2
-
-                # Clamp finale entro i limiti verticali
-                if apply_safe_area_to_visuals:
-                    y_top = max(y_top, safe_top)
-                    y_bottom = min(y_bottom, safe_bottom)
 
                 # Disegna la bar solo se visibile
                 if y_bottom > y_top and (x + bar_width) > x and x < (x_start + available_width):
@@ -416,32 +374,11 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
                 font_transcript = ImageFont.load_default()
 
             # Posizionamento più in basso per aumentare lo spazio dal logo
-            base_y = central_top + int(central_height * 0.74)
+            transcript_y = central_top + int(central_height * 0.74)
 
             # Stile sottotitoli
             style = _subtitle_default_style(colors)
-
-            # Calcola safe area (default nessun margine)
-            sa = safe_area or {}
-            safe_left = int(sa.get('left', 0))
-            safe_right = width - int(sa.get('right', 0))
-            safe_top = int(sa.get('top', 0))
-            safe_bottom = height - int(sa.get('bottom', 0))
-            # Larghezza massima: min tra ratio e larghezza safe
-            max_width_ratio = int(width * style['width_ratio'])
-            max_width_safe = max(50, safe_right - safe_left)
-            max_width = min(max_width_ratio, max_width_safe)
-
-            # Stima altezza box multi-riga per clamp verticale
-            bbox_sample = draw.textbbox((0, 0), "Ag", font=font_transcript)
-            lh = bbox_sample[3] - bbox_sample[1]
-            lines_max = style.get('max_lines', 5)
-            line_advance = int(lh * style['line_spacing']) if lh > 0 else lh
-            text_block_h = max(lh, line_advance) * lines_max
-            est_box_h = text_block_h + style.get('padding', 18) * 2
-
-            # Clamp della Y entro la safe area
-            transcript_y = max(safe_top, min(base_y, safe_bottom - est_box_h))
+            max_width = int(width * style['width_ratio'])
 
             img, _ = _render_subtitle_lines(
                 img,
@@ -450,8 +387,7 @@ def create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_
                 font_transcript,
                 transcript_y,
                 max_width,
-                style,
-                x_bounds=(safe_left, safe_right)
+                style
             )
             # Aggiorna draw nel caso l'immagine sia stata convertita in RGBA
             draw = ImageDraw.Draw(img)
@@ -719,19 +655,9 @@ def create_audiogram_frame(width, height, podcast_logo_path, podcast_title, epis
 
     # Delega al layout specifico per il formato
     if format_name == 'vertical':
-        # Recupera safe area da configurazione formati (se presente)
-        safe_area = None
-        if formats and isinstance(formats, dict):
-            fmt_cfg = formats.get('vertical') or formats.get(format_name)
-            if isinstance(fmt_cfg, dict):
-                safe_area = fmt_cfg.get('safe_area')
-        # Flag debug per disegnare la safe area
-        debug_draw = False
-        if isinstance(fmt_cfg, dict):
-            debug_draw = bool(fmt_cfg.get('debug_draw_safe_area', False))
         img = create_vertical_layout(img, draw, width, height, podcast_logo_path, podcast_title,
                                      episode_title, waveform_data, current_time, transcript_chunks,
-                                     audio_duration, colors, safe_area=safe_area, debug_draw_safe_area=debug_draw)
+                                     audio_duration, colors)
     elif format_name == 'square':
         img = create_square_layout(img, draw, width, height, podcast_logo_path, podcast_title,
                                    episode_title, waveform_data, current_time, transcript_chunks,

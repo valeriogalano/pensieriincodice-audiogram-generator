@@ -51,15 +51,6 @@ formats:
     height: 1920
     enabled: true
     description: "Verticale 9:16 (Reels, Stories, Shorts, TikTok)"
-    # Safe area unica (margini) per evitare sovrapposizione con controlli UI dei social
-    # Valori consigliati per 1080x1920; adatta se usi altre dimensioni
-    safe_area:
-      left: 108     # ≈10% della larghezza
-      right: 108    # ≈10%
-      top: 180      # ≈9% dell'altezza
-      bottom: 340   # ≈18% dell'altezza
-    # Debug: disegna la safe area come rettangolo verde semi-trasparente
-    debug_draw_safe_area: false
   square:
     width: 1080
     height: 1080
