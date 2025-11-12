@@ -9,6 +9,7 @@ import re
 import os
 import tempfile
 import argparse
+import shutil
 from typing import List
 from .audio_utils import download_audio, extract_audio_segment
 from .video_generator import generate_audiogram, download_image

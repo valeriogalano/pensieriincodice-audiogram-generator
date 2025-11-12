@@ -10,7 +10,10 @@ import urllib.request
 import ssl
 import re
 import unicodedata
+import shutil
 
+# Traccia i segmenti audio già salvati per evitare copie multiple per lo stesso soundbite
+_SAVED_SEGMENTS = set()
 
 # Formati video per social media
 FORMATS = {
@@ -558,3 +561,18 @@ def generate_audiogram(audio_path, output_path, format_name, podcast_logo_path,
         threads=4,
         preset='veryfast'  # Velocizza la creazione per video semplici
     )
+
+    # Salva anche il segmento audio nella cartella di output.
+    # Deduce il nome da output_path (es: ep145_sb1_vertical.mp4 -> ep145_sb1.mp3)
+    try:
+        base = os.path.basename(output_path)
+        m = re.search(r"(ep\d+)_sb(\d+)", base)
+        if m:
+            ep_tag = m.group(1)
+            sb_tag = m.group(2)
+            dest_path = os.path.join(os.path.dirname(output_path), f"{ep_tag}_sb{sb_tag}.mp3")
+            # Copia sempre sovrascrivendo come da richiesta dell'utente
+            shutil.copyfile(audio_path, dest_path)
+    except Exception as e:
+        # Non interrompere la generazione video in caso di errore di copia
+        print(f"  - Avviso: impossibile salvare il segmento audio in output: {e}")
