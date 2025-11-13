@@ -392,6 +392,11 @@ python -m unittest tests.test_config.TestConfig.test_configuration_precedence -v
 - [ ] Update usage doc (this file)
 - [ ] Handle tags with spaces (remove space? add underscore?)
 
+## Disclaimer
+
+This code was developed as a *vibe coding* experiment. It's important to keep this in mind if you decide to use it in
+your projects.
+
 ## License
 
 See the [LICENSE](LICENSE) file for details.
