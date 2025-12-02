@@ -91,11 +91,11 @@ class TestTranscriptAndCaptions(unittest.TestCase):
             )
             tmp.seek(0)
             content = tmp.read()
-            # Intestazione e corpo
-            self.assertIn("Episodio 42: Titolo", content)
+            # Header and body
+            self.assertIn("Episode 42: Titolo", content)
             self.assertIn("SB", content)
             self.assertIn("Testo", content)
-            self.assertIn("Ascolta l'episodio completo: https://example/ep", content)
+            self.assertIn("Listen to the full episode: https://example/ep", content)
             # Hashtag: normalizzati, unici, con # e in minuscolo, niente spazi
             self.assertIn("#ai", content)
             self.assertIn("#coding", content)

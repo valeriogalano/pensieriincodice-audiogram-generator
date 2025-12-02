@@ -45,7 +45,7 @@ class TestCliFlow(unittest.TestCase):
                 use_episode_cover=False,
             )
         out = buf.getvalue()
-        self.assertIn("Nessun soundbite disponibile per questo episodio.", out)
+        self.assertIn("No soundbites available for this episode.", out)
 
     @patch('audiogram_generator.cli.get_transcript_text', return_value=None)
     def test_dry_run_fallback_to_soundbite_title_when_no_transcript(self, _):
@@ -87,7 +87,7 @@ class TestCliFlow(unittest.TestCase):
                 use_episode_cover=False,
             )
         out = buf.getvalue()
-        self.assertIn('Errore selezione soundbites', out)
+        self.assertIn('Soundbite selection error', out)
 
     @patch('audiogram_generator.cli.generate_audiogram')
     @patch('audiogram_generator.cli.download_image', return_value='/tmp/cover.jpg')
