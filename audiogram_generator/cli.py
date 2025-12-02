@@ -731,7 +731,20 @@ def main():
     args = parser.parse_args()
 
     # Carica configurazione
-    config = Config(config_file=args.config)
+    # Se non viene passato --config, prova a usare un file di default (config.yml o config.yaml)
+    default_config_path = None
+    if not args.config:
+        # Cerca nella directory corrente
+        cwd = os.getcwd()
+        candidates = [
+            os.path.join(cwd, 'config.yml'),
+            os.path.join(cwd, 'config.yaml'),
+        ]
+        for candidate in candidates:
+            if os.path.exists(candidate):
+                default_config_path = candidate
+                break
+    config = Config(config_file=args.config or default_config_path)
 
     # Aggiorna configurazione con argomenti CLI (hanno precedenza)
     config.update_from_args({
