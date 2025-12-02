@@ -77,9 +77,14 @@ Note: The above file is not committed to the repository; it served as a temporar
 
 ## Development Notes and Code Style
 
+- Language and localization:
+  - All changes produced by agents must be in English: code comments, docstrings, commit messages, log/CLI messages, and any user-visible strings introduced or modified by agents.
+  - Conversations and issue discussions can continue in Italian.
+  - Legacy Italian text in the codebase may remain as-is; when touching legacy files, prefer migrating to English opportunistically.
+
 - Follow existing code style and patterns:
   - Modules use explicit functions; `config.py` is type-annotated and uses deep-merge for nested config.
-  - Tests prefer clear, descriptive Italian docstrings; mirror existing style and naming.
+  - Tests should use clear, descriptive English docstrings; when editing legacy tests with Italian docstrings, keep them or migrate them to English as appropriate, mirroring existing naming patterns.
   - Use RGB integer lists for color configs to stay consistent with current defaults.
 - CLI helpers worth unit-testing without side effects:
   - `parse_srt_time` in `audiogram_generator/cli.py` (already covered)
