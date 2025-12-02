@@ -300,7 +300,7 @@ def generate_caption_file(output_path, episode_number, episode_title, episode_li
 
 
 def parse_episode_selection(value, max_episode: int) -> List[int]:
-    """Parsa la selezione episodio: numero, lista separata da virgole, o 'all'/'a'"""
+    """Parsa la selezione episodio: numero, lista separata da virgole, 'all'/'a' o 'last'"""
     if value is None:
         return []
     if isinstance(value, int):
@@ -311,6 +311,8 @@ def parse_episode_selection(value, max_episode: int) -> List[int]:
         v = value.strip().lower()
         if v in ('all', 'a'):
             return list(range(1, max_episode + 1))
+        if v == 'last':
+            return [max_episode]
         parts = [p.strip() for p in v.split(',') if p.strip()]
         nums: List[int] = []
         for p in parts:
@@ -675,7 +677,7 @@ def main():
     parser = argparse.ArgumentParser(description='Audiogram generator from podcast RSS')
     parser.add_argument('--config', type=str, help='Path to the YAML configuration file')
     parser.add_argument('--feed-url', type=str, help='URL of the podcast RSS feed')
-    parser.add_argument('--episode', type=str, help="Episode(s) to process: number (e.g., 5), list (e.g., 1,3,5) or 'all'/'a' for all")
+    parser.add_argument('--episode', type=str, help="Episode(s) to process: number (e.g., 5), list (e.g., 1,3,5), 'all'/'a' for all, or 'last' for the most recent episode")
     parser.add_argument('--soundbites', type=str, help='Soundbites to generate: specific number, "all" for all, or comma-separated list (e.g., 1,3,5)')
     parser.add_argument('--output-dir', type=str, help='Output directory for generated files')
     parser.add_argument('--dry-run', action='store_true', help='Stampa solo intervalli e sottotitoli dei soundbite senza generare file')
@@ -759,7 +761,7 @@ def main():
         # Modalità interattiva
         while True:
             try:
-                choice = input(f"\nSeleziona episodio: numero (es. 5), lista (es. 1,3,5) o 'all'/'a' per tutti: ").strip()
+                choice = input(f"\nSeleziona episodio: numero (es. 5), lista (es. 1,3,5), 'all'/'a' per tutti, oppure 'last' per l'ultimo: ").strip()
                 try:
                     selected_episode_numbers = parse_episode_selection(choice, max_episode)
                     break

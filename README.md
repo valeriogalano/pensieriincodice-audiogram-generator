@@ -74,7 +74,7 @@ Available options:
 
 - `--config PATH` — YAML configuration file
 - `--feed-url URL` — RSS feed URL (required if not provided in config)
-- `--episode EPISODES` — Episodes to process: `5`, `1,3,5`, or `all`
+- `--episode EPISODES` — Episodes to process: `5`, `1,3,5`, `all`, or `last` (most recent)
 - `--soundbites CHOICE` — Soundbites: `1`, `1,3`, or `all`
 - `--output-dir PATH` — Output directory (default: `./output`)
 - `--dry-run` — Print timings and transcript text only (no files generated)
@@ -97,6 +97,9 @@ python -m audiogram_generator --feed-url https://example.com/feed.xml \
 
 # Use a configuration file and override an option
 python -m audiogram_generator --config config.yaml --episode 150
+
+# Process the most recent episode from the feed
+python -m audiogram_generator --episode last --soundbites all
 ```
 
 ### Dry‑run mode

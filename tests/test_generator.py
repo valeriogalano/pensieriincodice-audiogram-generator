@@ -25,6 +25,13 @@ class TestCliModule(unittest.TestCase):
         # Timestamp con millisecondi
         self.assertEqual(cli.parse_srt_time("00:00:01,123"), 1.123)
 
+    def test_parse_episode_selection_last(self):
+        """Test selezione episodio con valore 'last'"""
+        # max_episode=150 -> 'last' deve restituire [150]
+        self.assertEqual(cli.parse_episode_selection('last', 150), [150])
+        # Case-insensitive e con spazi
+        self.assertEqual(cli.parse_episode_selection('  LAST  ', 12), [12])
+
 
 if __name__ == "__main__":
     unittest.main()
