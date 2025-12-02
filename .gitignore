@@ -43,3 +43,4 @@ output/
 
 # Config files
 config.*.yaml
+config.yaml
