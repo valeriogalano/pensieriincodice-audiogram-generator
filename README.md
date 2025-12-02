@@ -79,6 +79,7 @@ Available options:
 - `--output-dir PATH` — Output directory (default: `./output`)
 - `--dry-run` — Print timings and transcript text only (no files generated)
 - `--show-subtitles` / `--no-subtitles` — Force enable/disable on‑video subtitles
+- `--use-episode-cover` / `--no-use-episode-cover` — Prefer the episode-specific cover art when available (fallback to podcast cover)
 
 Precedence: CLI flags > config file > defaults.
 
@@ -100,6 +101,9 @@ python -m audiogram_generator --config config.yaml --episode 150
 
 # Process the most recent episode from the feed
 python -m audiogram_generator --episode last --soundbites all
+
+# Use the episode cover instead of the podcast cover (when available)
+python -m audiogram_generator --episode 142 --soundbites all --use-episode-cover
 ```
 
 ### Dry‑run mode

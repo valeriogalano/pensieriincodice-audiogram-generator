@@ -35,7 +35,8 @@ def get_podcast_episodes(feed_url):
     # Registra namespace
     namespaces = {
         'podcast': 'https://podcastindex.org/namespace/1.0',
-        'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd'
+        'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd',
+        'media': 'http://search.yahoo.com/mrss/'
     }
 
     # Estrai informazioni del podcast (locandina e titolo)
@@ -53,16 +54,24 @@ def get_podcast_episodes(feed_url):
             url_elem = image_elem.find('url')
             if url_elem is not None and url_elem.text:
                 podcast_info['image_url'] = url_elem.text.strip()
+        # Fallback: iTunes image a livello di canale
+        if not podcast_info.get('image_url'):
+            ch_itunes_img = channel.find('itunes:image', namespaces)
+            if ch_itunes_img is not None:
+                href = ch_itunes_img.get('href') or ch_itunes_img.get('url')
+                if href:
+                    podcast_info['image_url'] = href.strip()
 
         # Keywords/tags del podcast
         keywords_elem = channel.find('itunes:keywords', namespaces)
         if keywords_elem is not None and keywords_elem.text:
             podcast_info['keywords'] = keywords_elem.text.strip()
 
-    # Trova tutti gli item e i loro soundbites, transcript, audio e keywords
+    # Trova tutti gli item e i loro soundbites, transcript, audio, immagini e keywords
     transcript_by_guid = {}
     audio_by_guid = {}
     keywords_by_guid = {}
+    episode_image_by_guid = {}
     for item in root.findall('.//item'):
         guid_elem = item.find('guid')
         if guid_elem is not None:
@@ -98,6 +107,22 @@ def get_podcast_episodes(feed_url):
             if keywords_elem is not None and keywords_elem.text:
                 keywords_by_guid[guid] = keywords_elem.text.strip()
 
+            # Estrai immagine specifica dell'episodio (preferisci iTunes, poi Media RSS)
+            ep_img_url = None
+            itunes_img = item.find('itunes:image', namespaces)
+            if itunes_img is not None:
+                ep_img_url = itunes_img.get('href') or itunes_img.get('url')
+            if not ep_img_url:
+                media_thumb = item.find('media:thumbnail', namespaces)
+                if media_thumb is not None:
+                    ep_img_url = media_thumb.get('url')
+            if not ep_img_url:
+                media_content = item.find('media:content', namespaces)
+                if media_content is not None:
+                    ep_img_url = media_content.get('url')
+            if ep_img_url:
+                episode_image_by_guid[guid] = ep_img_url.strip()
+
     feed = feedparser.parse(feed_content)
 
     episodes = []
@@ -117,7 +142,8 @@ def get_podcast_episodes(feed_url):
             'soundbites': soundbites_by_guid.get(guid, []),
             'transcript_url': transcript_by_guid.get(guid, None),
             'audio_url': audio_by_guid.get(guid, None),
-            'keywords': keywords_by_guid.get(guid, None)
+            'keywords': keywords_by_guid.get(guid, None),
+            'image_url': episode_image_by_guid.get(guid, None)
         }
         episodes.append(episode)
 
@@ -357,10 +383,17 @@ def parse_soundbite_selection(value, max_soundbites: int) -> List[int]:
     raise ValueError('Formato soundbite non supportato')
 
 
-def process_one_episode(selected, podcast_info, colors, formats_config, config_hashtags, show_subtitles, output_dir, soundbites_choice, dry_run=False):
+def process_one_episode(selected, podcast_info, colors, formats_config, config_hashtags, show_subtitles, output_dir, soundbites_choice, dry_run=False, use_episode_cover=False):
     print(f"\nEpisodio {selected['number']}: {selected['title']}")
     if selected['audio_url']:
         print(f"Audio: {selected['audio_url']}")
+
+    # Scegli URL locandina da usare (episodio se richiesto e disponibile, altrimenti podcast)
+    artwork_url = None
+    if use_episode_cover and selected.get('image_url'):
+        artwork_url = selected['image_url']
+    else:
+        artwork_url = podcast_info.get('image_url')
 
     # Modalità dry-run: stampa solo intervalli e sottotitoli e termina
     if dry_run:
@@ -446,7 +479,8 @@ def process_one_episode(selected, podcast_info, colors, formats_config, config_h
                 # Scarica logo una sola volta
                 print("Download locandina...")
                 logo_path = os.path.join(temp_dir, "logo.png")
-                download_image(podcast_info['image_url'], logo_path)
+                if artwork_url:
+                    download_image(artwork_url, logo_path)
 
                 # Crea directory output
                 os.makedirs(output_dir, exist_ok=True)
@@ -568,7 +602,8 @@ def process_one_episode(selected, podcast_info, colors, formats_config, config_h
                     # Scarica logo una sola volta
                     print("Download locandina...")
                     logo_path = os.path.join(temp_dir, "logo.png")
-                    download_image(podcast_info['image_url'], logo_path)
+                    if artwork_url:
+                        download_image(artwork_url, logo_path)
 
                     # Crea directory output
                     os.makedirs(output_dir, exist_ok=True)
@@ -687,6 +722,12 @@ def main():
     subs_group.add_argument('--no-subtitles', dest='show_subtitles', action='store_false', help='Disabilita la visualizzazione dei sottotitoli nel video')
     parser.set_defaults(show_subtitles=None)
 
+    # Copertina episodio on/off
+    cover_group = parser.add_mutually_exclusive_group()
+    cover_group.add_argument('--use-episode-cover', dest='use_episode_cover', action='store_true', help="Usa la copertina specifica dell'episodio se disponibile")
+    cover_group.add_argument('--no-use-episode-cover', dest='use_episode_cover', action='store_false', help="Non usare la copertina episodio, usa quella del podcast")
+    parser.set_defaults(use_episode_cover=None)
+
     args = parser.parse_args()
 
     # Carica configurazione
@@ -699,7 +740,8 @@ def main():
         'soundbites': args.soundbites,
         'output_dir': args.output_dir,
         'dry_run': args.dry_run,
-        'show_subtitles': args.show_subtitles
+        'show_subtitles': args.show_subtitles,
+        'use_episode_cover': args.use_episode_cover
     })
 
     # Usa argomenti o richiedi input interattivo
@@ -714,6 +756,7 @@ def main():
     config_hashtags = config.get('hashtags', [])
     show_subtitles = config.get('show_subtitles', True)
     dry_run = config.get('dry_run', False)
+    use_episode_cover = config.get('use_episode_cover', False)
 
     # Chiedi feed_url interattivamente se non specificato
     if feed_url is None:
@@ -791,7 +834,8 @@ def main():
             show_subtitles=show_subtitles,
             output_dir=output_dir,
             soundbites_choice=soundbites_choice,
-            dry_run=dry_run
+            dry_run=dry_run,
+            use_episode_cover=use_episode_cover
         )
 
     return
@@ -866,7 +910,8 @@ def main():
                 # Scarica logo una sola volta
                 print("Download locandina...")
                 logo_path = os.path.join(temp_dir, "logo.png")
-                download_image(podcast_info['image_url'], logo_path)
+                if artwork_url:
+                    download_image(artwork_url, logo_path)
 
                 # Crea directory output
                 os.makedirs(output_dir, exist_ok=True)

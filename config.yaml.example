@@ -75,3 +75,8 @@ hashtags:
 # Brucia i sottotitoli direttamente sul video
 # Default: true
 show_subtitles: true
+
+# Copertina da usare per i video (opzionale)
+# Se true, quando disponibile verrà usata la copertina specifica dell'episodio
+# invece di quella generale del podcast. Default: false
+use_episode_cover: false
