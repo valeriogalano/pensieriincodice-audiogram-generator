@@ -492,9 +492,11 @@ def process_one_episode(selected, podcast_info, colors, formats_config, config_h
 
                     for format_name, format_desc in formats_info.items():
                         print(f"Generazione audiogram {format_desc}...")
+                        # Aggiunge un suffisso al nome file se i sottotitoli sono disabilitati
+                        nosubs_suffix = "_nosubs" if not show_subtitles else ""
                         output_path = os.path.join(
                             output_dir,
-                            f"ep{selected['number']}_sb{soundbite_num}_{format_name}.mp4"
+                            f"ep{selected['number']}_sb{soundbite_num}{nosubs_suffix}_{format_name}.mp4"
                         )
 
                         generate_audiogram(
@@ -614,9 +616,11 @@ def process_one_episode(selected, podcast_info, colors, formats_config, config_h
 
                         for format_name, format_desc in formats_info.items():
                             print(f"Generazione audiogram {format_desc}...")
+                            # Aggiunge un suffisso al nome file se i sottotitoli sono disabilitati
+                            nosubs_suffix = "_nosubs" if not show_subtitles else ""
                             output_path = os.path.join(
                                 output_dir,
-                                f"ep{selected['number']}_sb{soundbite_num}_{format_name}.mp4"
+                                f"ep{selected['number']}_sb{soundbite_num}{nosubs_suffix}_{format_name}.mp4"
                             )
 
                             generate_audiogram(
@@ -908,9 +912,11 @@ def main():
 
                     for format_name, format_desc in formats_info.items():
                         print(f"Generazione audiogram {format_desc}...")
+                        # Aggiunge un suffisso al nome file se i sottotitoli sono disabilitati
+                        nosubs_suffix = "_nosubs" if not show_subtitles else ""
                         output_path = os.path.join(
                             output_dir,
-                            f"ep{selected['number']}_sb{soundbite_num}_{format_name}.mp4"
+                            f"ep{selected['number']}_sb{soundbite_num}{nosubs_suffix}_{format_name}.mp4"
                         )
 
                         generate_audiogram(
@@ -1046,9 +1052,11 @@ def main():
 
                         for format_name, format_desc in formats_info.items():
                             print(f"Generazione audiogram {format_desc}...")
+                            # Aggiunge un suffisso al nome file se i sottotitoli sono disabilitati
+                            nosubs_suffix = "_nosubs" if not show_subtitles else ""
                             output_path = os.path.join(
                                 output_dir,
-                                f"ep{selected['number']}_sb{soundbite_num}_{format_name}.mp4"
+                                f"ep{selected['number']}_sb{soundbite_num}{nosubs_suffix}_{format_name}.mp4"
                             )
 
                             generate_audiogram(

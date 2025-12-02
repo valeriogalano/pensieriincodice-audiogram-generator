@@ -130,6 +130,8 @@ Control on‑video subtitles via CLI flags or YAML. CLI flags always win.
   show_subtitles: false
   ```
 
+When subtitles are disabled, generated video filenames include a `_nosubs` suffix to make files easy to identify, for example: `ep142_sb1_nosubs_vertical.mp4`.
+
 ## Configuration
 
 Start from the example and adjust to your needs:
@@ -190,6 +192,8 @@ Files are saved to `output/` by default.
 Videos:
 ```
 ep{episode_number}_sb{soundbite_number}_{format}.mp4
+# When subtitles are disabled:
+ep{episode_number}_sb{soundbite_number}_nosubs_{format}.mp4
 ```
 
 Caption file:
@@ -202,6 +206,11 @@ Example for soundbite 1 of episode 142:
 - `ep142_sb1_square.mp4`
 - `ep142_sb1_horizontal.mp4`
 - `ep142_sb1_caption.txt`
+
+If subtitles are disabled:
+- `ep142_sb1_nosubs_vertical.mp4`
+- `ep142_sb1_nosubs_square.mp4`
+- `ep142_sb1_nosubs_horizontal.mp4`
 
 Each `_caption.txt` contains: episode title/number, soundbite title, full transcript text, link to full episode, and suggested hashtags.
 
