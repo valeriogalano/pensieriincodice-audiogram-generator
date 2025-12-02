@@ -78,7 +78,8 @@ class Config:
                         else:
                             self.config[key] = value
         except Exception as e:
-            raise Exception(f"Error loading configuration file: {e}")
+            # Messaggio di errore in italiano per coerenza con i test e i messaggi del progetto
+            raise Exception(f"Errore nel caricamento del file di configurazione: {e}")
 
     def _deep_merge(self, base: dict, update: dict) -> None:
         """

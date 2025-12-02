@@ -264,17 +264,28 @@ def generate_caption_file(output_path, episode_number, episode_title, episode_li
     if config_hashtags:
         hashtags.extend(config_hashtags)
 
-    # Rimuovi duplicati preservando l'ordine
+    # Normalizza le etichette: rimuovi spazi e rendi tutto minuscolo.
+    # Esempio: "AI Dev Ops" -> "aidevops"; gestisce anche eventuali '#'
+    def _normalize_tag(t: str) -> str:
+        t = t.strip()
+        if t.startswith('#'):
+            t = t[1:]
+        # minuscolo e senza spazi
+        t = re.sub(r"\s+", "", t).lower()
+        return t
+
+    normalized = [_normalize_tag(t) for t in hashtags if _normalize_tag(t)]
+
+    # Rimuovi duplicati preservando l'ordine sulla versione normalizzata
     seen = set()
     unique_hashtags = []
-    for tag in hashtags:
-        tag_lower = tag.lower()
-        if tag_lower not in seen:
-            seen.add(tag_lower)
-            unique_hashtags.append(tag)
+    for t in normalized:
+        if t not in seen:
+            seen.add(t)
+            unique_hashtags.append(t)
 
-    # Formatta hashtag con il simbolo #
-    hashtag_string = ' '.join([f'#{tag}' for tag in unique_hashtags]) if unique_hashtags else '#podcast'
+    # Formatta hashtag con il simbolo # (già normalizzati, senza spazi e in minuscolo)
+    hashtag_string = ' '.join([f'#{t}' for t in unique_hashtags]) if unique_hashtags else '#podcast'
 
     caption = (
         f"Episodio {episode_number}: {episode_title}\n\n"
