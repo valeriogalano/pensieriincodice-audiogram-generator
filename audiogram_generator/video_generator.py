@@ -5,7 +5,6 @@ import os
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from moviepy import VideoClip, AudioFileClip
-from pydub import AudioSegment
 import urllib.request
 import ssl
 import re
@@ -233,6 +232,10 @@ def get_waveform_data(audio_path, fps=24):
     Returns:
         Array di ampiezze per ogni frame del video
     """
+    # Lazy import to avoid importing heavy dependencies at module import time
+    # which can break unit tests in constrained environments
+    from pydub import AudioSegment  # type: ignore
+
     audio = AudioSegment.from_file(audio_path)
     samples = np.array(audio.get_array_of_samples())
 

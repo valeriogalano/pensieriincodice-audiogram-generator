@@ -4,7 +4,6 @@ Utilities to download and process audio
 import os
 import ssl
 import urllib.request
-from pydub import AudioSegment
 
 
 def download_audio(url, output_path):
@@ -29,6 +28,10 @@ def extract_audio_segment(audio_path, start_time, duration, output_path):
         duration: Durata del segmento in secondi
         output_path: Percorso del file di output
     """
+    # Lazy import to avoid importing heavy dependencies at module import time
+    # and to keep unit tests independent from optional binary deps.
+    from pydub import AudioSegment  # type: ignore
+
     audio = AudioSegment.from_file(audio_path)
 
     start_ms = int(float(start_time) * 1000)

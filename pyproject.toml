@@ -1,0 +1,37 @@
+[tool.black]
+line-length = 100
+target-version = ["py38"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+known_first_party = ["audiogram_generator", "tests"]
+
+[tool.ruff]
+line-length = 100
+extend-select = ["E", "F", "W"]
+ignore = [
+  # Allow unused imports in __init__ files for re-export convenience
+  "F401",
+]
+
+[tool.mypy]
+python_version = "3.8"
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_optional = true
+check_untyped_defs = true
+disallow_untyped_defs = false
+disallow_any_generics = false
+pretty = true
+show_error_codes = true
+exclude = [
+  "tests",
+  "audiogram_generator/video_generator.py",
+]
+packages = [
+  "audiogram_generator.core",
+  "audiogram_generator.services",
+  "audiogram_generator.rendering",
+]

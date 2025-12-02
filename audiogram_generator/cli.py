@@ -6,253 +6,62 @@ import ssl
 import urllib.request
 import xml.etree.ElementTree as ET
 import re
+import logging
 import os
 import tempfile
 import argparse
 import shutil
 from typing import List
 from .audio_utils import download_audio, extract_audio_segment
-from .video_generator import generate_audiogram, download_image
+from .services.assets import download_image
+from .rendering.facade import generate_audiogram
 from .config import Config
+from .core.captioning import build_caption_text
+from .core import (
+    parse_srt_time,
+    format_seconds,
+    parse_episode_selection,
+    parse_soundbite_selection,
+)
+from .services import transcript as transcript_svc
+from .services import rss as rss_svc
 
 
 def get_podcast_episodes(feed_url):
-    """Fetch the list of episodes from the RSS feed"""
-    # Crea un contesto SSL che non verifica i certificati
-    ssl_context = ssl.create_default_context()
-    ssl_context.check_hostname = False
-    ssl_context.verify_mode = ssl.CERT_NONE
+    """Fetch the list of episodes from the RSS feed.
 
-    # Scarica il feed con il contesto SSL personalizzato
-    request = urllib.request.Request(feed_url, headers={'User-Agent': 'Mozilla/5.0'})
-    with urllib.request.urlopen(request, context=ssl_context) as response:
-        feed_content = response.read()
-
-    # Parsa XML per estrarre soundbites con testo
-    root = ET.fromstring(feed_content)
-    soundbites_by_guid = {}
-
-    # Registra namespace
-    namespaces = {
-        'podcast': 'https://podcastindex.org/namespace/1.0',
-        'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd',
-        'media': 'http://search.yahoo.com/mrss/'
-    }
-
-    # Estrai informazioni del podcast (locandina e titolo)
-    podcast_info = {}
-    channel = root.find('.//channel')
-    if channel is not None:
-        # Titolo del podcast
-        title_elem = channel.find('title')
-        if title_elem is not None and title_elem.text:
-            podcast_info['title'] = title_elem.text.strip()
-
-        # Locandina del podcast
-        image_elem = channel.find('image')
-        if image_elem is not None:
-            url_elem = image_elem.find('url')
-            if url_elem is not None and url_elem.text:
-                podcast_info['image_url'] = url_elem.text.strip()
-        # Fallback: iTunes image a livello di canale
-        if not podcast_info.get('image_url'):
-            ch_itunes_img = channel.find('itunes:image', namespaces)
-            if ch_itunes_img is not None:
-                href = ch_itunes_img.get('href') or ch_itunes_img.get('url')
-                if href:
-                    podcast_info['image_url'] = href.strip()
-
-        # Keywords/tags del podcast
-        keywords_elem = channel.find('itunes:keywords', namespaces)
-        if keywords_elem is not None and keywords_elem.text:
-            podcast_info['keywords'] = keywords_elem.text.strip()
-
-    # Trova tutti gli item e i loro soundbites, transcript, audio, immagini e keywords
-    transcript_by_guid = {}
-    audio_by_guid = {}
-    keywords_by_guid = {}
-    episode_image_by_guid = {}
-    for item in root.findall('.//item'):
-        guid_elem = item.find('guid')
-        if guid_elem is not None:
-            guid = guid_elem.text.strip() if guid_elem.text else ''
-
-            # Estrai soundbites
-            soundbites = []
-            for sb in item.findall('podcast:soundbite', namespaces):
-                soundbites.append({
-                    'start': sb.get('startTime'),
-                    'duration': sb.get('duration'),
-                    'text': sb.text.strip() if sb.text else 'Senza descrizione'
-                })
-            if soundbites:
-                soundbites_by_guid[guid] = soundbites
-
-            # Estrai URL transcript
-            transcript_elem = item.find('podcast:transcript', namespaces)
-            if transcript_elem is not None:
-                transcript_url = transcript_elem.get('url')
-                if transcript_url:
-                    transcript_by_guid[guid] = transcript_url
-
-            # Estrai URL audio da enclosure
-            enclosure_elem = item.find('enclosure')
-            if enclosure_elem is not None:
-                audio_url = enclosure_elem.get('url')
-                if audio_url:
-                    audio_by_guid[guid] = audio_url
-
-            # Estrai keywords dell'episodio
-            keywords_elem = item.find('itunes:keywords', namespaces)
-            if keywords_elem is not None and keywords_elem.text:
-                keywords_by_guid[guid] = keywords_elem.text.strip()
-
-            # Estrai immagine specifica dell'episodio (preferisci iTunes, poi Media RSS)
-            ep_img_url = None
-            itunes_img = item.find('itunes:image', namespaces)
-            if itunes_img is not None:
-                ep_img_url = itunes_img.get('href') or itunes_img.get('url')
-            if not ep_img_url:
-                media_thumb = item.find('media:thumbnail', namespaces)
-                if media_thumb is not None:
-                    ep_img_url = media_thumb.get('url')
-            if not ep_img_url:
-                media_content = item.find('media:content', namespaces)
-                if media_content is not None:
-                    ep_img_url = media_content.get('url')
-            if ep_img_url:
-                episode_image_by_guid[guid] = ep_img_url.strip()
-
-    feed = feedparser.parse(feed_content)
-
-    episodes = []
-    total_episodes = len(feed.entries)
-
-    for idx, entry in enumerate(reversed(feed.entries)):
-        # Calcola il numero dell'episodio (dal più vecchio al più recente)
-        episode_number = idx + 1
-
-        guid = entry.get('guid', entry.get('id', ''))
-
-        episode = {
-            'number': episode_number,
-            'title': entry.get('title', 'Senza titolo'),
-            'link': entry.get('link', ''),
-            'description': entry.get('description', ''),
-            'soundbites': soundbites_by_guid.get(guid, []),
-            'transcript_url': transcript_by_guid.get(guid, None),
-            'audio_url': audio_by_guid.get(guid, None),
-            'keywords': keywords_by_guid.get(guid, None),
-            'image_url': episode_image_by_guid.get(guid, None)
-        }
-        episodes.append(episode)
-
-    return episodes, podcast_info
+    Thin delegator to services.rss to keep backward compatibility while
+    moving parsing/network logic into the service layer.
+    """
+    return rss_svc.get_podcast_episodes(feed_url)
 
 
-def parse_srt_time(time_str):
-    """Converte un timestamp SRT in secondi"""
-    # Formato: 00:00:10,500 -> 10.5 secondi
-    time_str = time_str.replace(',', '.')
-    parts = time_str.split(':')
-    hours = int(parts[0])
-    minutes = int(parts[1])
-    seconds = float(parts[2])
-    return hours * 3600 + minutes * 60 + seconds
-
-
-def format_seconds(seconds: float) -> str:
-    """Formatta i secondi in HH:MM:SS.mmm"""
-    import math
-    sign = '-' if seconds < 0 else ''
-    s = abs(seconds)
-    hours = int(s // 3600)
-    minutes = int((s % 3600) // 60)
-    secs = int(s % 60)
-    millis = int(round((s - math.floor(s)) * 1000))
-    return f"{sign}{hours:02d}:{minutes:02d}:{secs:02d}.{millis:03d}"
+## NOTE: pure helpers moved to audiogram_generator.core
+## - parse_srt_time
+## - format_seconds
 
 
 def get_transcript_text(transcript_url, start_time, duration):
-    """Scarica il file SRT e estrae il testo nel range temporale"""
-    ssl_context = ssl.create_default_context()
-    ssl_context.check_hostname = False
-    ssl_context.verify_mode = ssl.CERT_NONE
+    """Scarica il file SRT e estrae il testo nel range temporale.
 
+    Implementation delegates to services.transcript for fetching and parsing.
+    """
     try:
-        request = urllib.request.Request(transcript_url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(request, context=ssl_context) as response:
-            srt_content = response.read().decode('utf-8')
-
-        start_time_sec = float(start_time)
-        end_time_sec = start_time_sec + float(duration)
-
-        # Parsa il file SRT
-        # Formato: numero\ntimestamp --> timestamp\ntesto\n\n
-        entries = re.split(r'\n\n+', srt_content.strip())
-
-        transcript_lines = []
-        for entry in entries:
-            lines = entry.strip().split('\n')
-            if len(lines) >= 3:
-                # lines[0] = numero
-                # lines[1] = timestamp
-                # lines[2+] = testo
-                timestamp_line = lines[1]
-                if '-->' in timestamp_line:
-                    time_parts = timestamp_line.split('-->')
-                    entry_start = parse_srt_time(time_parts[0].strip())
-                    entry_end = parse_srt_time(time_parts[1].strip())
-
-                    # Includi SOLO i blocchi interamente contenuti nel soundbite
-                    if (entry_start >= start_time_sec) and (entry_end <= end_time_sec):
-                        text = ' '.join(lines[2:])
-                        transcript_lines.append(text)
-
-        return ' '.join(transcript_lines) if transcript_lines else None
-    except Exception as e:
+        srt_content = transcript_svc.fetch_srt(transcript_url)
+        return transcript_svc.get_transcript_text_from_srt(srt_content, start_time, duration)
+    except Exception:
         return None
 
 
 def get_transcript_chunks(transcript_url, start_time, duration):
-    """Scarica il file SRT e restituisce chunk di testo con timing per il soundbite"""
-    ssl_context = ssl.create_default_context()
-    ssl_context.check_hostname = False
-    ssl_context.verify_mode = ssl.CERT_NONE
+    """Scarica il file SRT e restituisce chunk di testo con timing per il soundbite.
 
+    Implementation delegates to services.transcript for fetching and parsing.
+    """
     try:
-        request = urllib.request.Request(transcript_url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(request, context=ssl_context) as response:
-            srt_content = response.read().decode('utf-8')
-
-        start_time_sec = float(start_time)
-        end_time_sec = start_time_sec + float(duration)
-
-        # Parsa il file SRT
-        entries = re.split(r'\n\n+', srt_content.strip())
-
-        transcript_chunks = []
-        for entry in entries:
-            lines = entry.strip().split('\n')
-            if len(lines) >= 3:
-                timestamp_line = lines[1]
-                if '-->' in timestamp_line:
-                    time_parts = timestamp_line.split('-->')
-                    entry_start = parse_srt_time(time_parts[0].strip())
-                    entry_end = parse_srt_time(time_parts[1].strip())
-
-                    # Includi SOLO i blocchi interamente contenuti nel soundbite
-                    if (entry_start >= start_time_sec) and (entry_end <= end_time_sec):
-                        text = ' '.join(lines[2:])
-                        # Converti timing relativi al soundbite (inizia da 0)
-                        transcript_chunks.append({
-                            'start': max(0, entry_start - start_time_sec),
-                            'end': min(float(duration), entry_end - start_time_sec),
-                            'text': text
-                        })
-
-        return transcript_chunks
-    except Exception as e:
+        srt_content = transcript_svc.fetch_srt(transcript_url)
+        return transcript_svc.parse_srt_to_chunks(srt_content, float(start_time), float(duration))
+    except Exception:
         return []
 
 
@@ -262,125 +71,27 @@ def generate_caption_file(output_path, episode_number, episode_title, episode_li
     """
     Generate a plain-text .txt caption file for social posts (no markdown).
 
-    Args:
-        output_path: Path of the .txt file to create
-        episode_number: Episode number
-        episode_title: Episode title
-        episode_link: Episode link URL
-        soundbite_title: Soundbite title
-        transcript_text: Transcript text
-        podcast_keywords: Keywords from the podcast feed (optional)
-        episode_keywords: Keywords from the episode feed (optional)
-        config_hashtags: List of extra hashtags from configuration (optional)
+    This function delegates the pure string generation to
+    ``core.captioning.build_caption_text`` and only performs file I/O here.
     """
-    # Combine all available hashtags
-    hashtags = []
-
-    # Add keywords from the podcast feed
-    if podcast_keywords:
-        feed_tags = [tag.strip() for tag in podcast_keywords.split(',')]
-        hashtags.extend(feed_tags)
-
-    # Add keywords from the episode
-    if episode_keywords:
-        episode_tags = [tag.strip() for tag in episode_keywords.split(',')]
-        hashtags.extend(episode_tags)
-
-    # Add hashtags from configuration file
-    if config_hashtags:
-        hashtags.extend(config_hashtags)
-
-    # Normalize tags: remove spaces, lowercase. Also handle an optional leading '#'.
-    # Example: "AI Dev Ops" -> "aidevops"
-    def _normalize_tag(t: str) -> str:
-        t = t.strip()
-        if t.startswith('#'):
-            t = t[1:]
-        # lowercase and no spaces
-        t = re.sub(r"\s+", "", t).lower()
-        return t
-
-    normalized = [_normalize_tag(t) for t in hashtags if _normalize_tag(t)]
-
-    # Remove duplicates while preserving order (based on normalized version)
-    seen = set()
-    unique_hashtags = []
-    for t in normalized:
-        if t not in seen:
-            seen.add(t)
-            unique_hashtags.append(t)
-
-    # Format hashtags with '#' (already normalized, no spaces and lowercase)
-    hashtag_string = ' '.join([f'#{t}' for t in unique_hashtags]) if unique_hashtags else '#podcast'
-
-    caption = (
-        f"Episode {episode_number}: {episode_title}\n\n"
-        f"{soundbite_title}\n\n"
-        f"{transcript_text}\n\n"
-        f"Listen to the full episode: {episode_link}\n\n"
-        f"{hashtag_string}\n"
+    caption = build_caption_text(
+        episode_number=episode_number,
+        episode_title=episode_title,
+        episode_link=episode_link,
+        soundbite_title=soundbite_title,
+        transcript_text=transcript_text,
+        podcast_keywords=podcast_keywords,
+        episode_keywords=episode_keywords,
+        config_hashtags=config_hashtags,
     )
 
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(caption)
 
 
-def parse_episode_selection(value, max_episode: int) -> List[int]:
-    """Parsa la selezione episodio: numero, lista separata da virgole, 'all'/'a' o 'last'"""
-    if value is None:
-        return []
-    if isinstance(value, int):
-        if 1 <= value <= max_episode:
-            return [value]
-        raise ValueError('Numero episodio fuori intervallo')
-    if isinstance(value, str):
-        v = value.strip().lower()
-        if v in ('all', 'a'):
-            return list(range(1, max_episode + 1))
-        if v == 'last':
-            return [max_episode]
-        parts = [p.strip() for p in v.split(',') if p.strip()]
-        nums: List[int] = []
-        for p in parts:
-            if not p.isdigit():
-                raise ValueError('Valore non numerico nella lista')
-            n = int(p)
-            if not (1 <= n <= max_episode):
-                raise ValueError('Numero episodio fuori intervallo')
-            if n not in nums:
-                nums.append(n)
-        if not nums:
-            raise ValueError('Nessun episodio valido specificato')
-        return nums
-    raise ValueError('Formato episodio non supportato')
-
-
-def parse_soundbite_selection(value, max_soundbites: int) -> List[int]:
-    """Parsa selezione soundbites (numero, lista, all) in lista di int"""
-    if value is None:
-        return list(range(1, max_soundbites + 1))
-    if isinstance(value, int):
-        if 1 <= value <= max_soundbites:
-            return [value]
-        raise ValueError('Numero soundbite fuori intervallo')
-    if isinstance(value, str):
-        v = value.strip().lower()
-        if v in ('all', 'a'):
-            return list(range(1, max_soundbites + 1))
-        parts = [p.strip() for p in v.split(',') if p.strip()]
-        nums: List[int] = []
-        for p in parts:
-            if not p.isdigit():
-                raise ValueError('Valore non numerico nella lista')
-            n = int(p)
-            if not (1 <= n <= max_soundbites):
-                raise ValueError('Numero soundbite fuori intervallo')
-            if n not in nums:
-                nums.append(n)
-        if not nums:
-            raise ValueError('Nessun soundbite valido specificato')
-        return nums
-    raise ValueError('Formato soundbite non supportato')
+## NOTE: selection parsers moved to audiogram_generator.core
+## - parse_episode_selection
+## - parse_soundbite_selection
 
 
 def process_one_episode(selected, podcast_info, colors, formats_config, config_hashtags, show_subtitles, output_dir, soundbites_choice, dry_run=False, use_episode_cover=False):
@@ -709,6 +420,8 @@ def process_one_episode(selected, podcast_info, colors, formats_config, config_h
 def main():
     """Funzione principale CLI"""
     # Argument parsing
+    # Minimal logging setup; services use logging for diagnostics.
+    logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(description='Audiogram generator from podcast RSS')
     parser.add_argument('--config', type=str, help='Path to the YAML configuration file')
     parser.add_argument('--feed-url', type=str, help='URL of the podcast RSS feed')
