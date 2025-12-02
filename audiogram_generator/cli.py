@@ -523,12 +523,12 @@ def main():
                 user_input = input("\nEnter the podcast RSS feed URL: ").strip()
                 if user_input:
                     feed_url = user_input
-                    print(f"Usando feed: {feed_url}")
+                    print(f"Using feed: {feed_url}")
                     break
                 else:
-                    print("L'URL del feed non può essere vuoto. Riprova.")
+                    print("The feed URL cannot be empty. Try again.")
         except KeyboardInterrupt:
-            print("\nOperazione annullata.")
+            print("\nOperation cancelled.")
             return
 
     print("\nRecupero episodi dal feed...")
