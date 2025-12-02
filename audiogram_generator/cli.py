@@ -27,6 +27,27 @@ from .services import transcript as transcript_svc
 from .services import rss as rss_svc
 
 
+_ffmpeg_warned = False
+
+
+def _warn_if_no_ffmpeg():
+    """Print a friendly warning if FFmpeg is not available on PATH.
+
+    Non-fatal: only informs the user; rendering may still fail later if required.
+    Printed at most once per process.
+    """
+    global _ffmpeg_warned
+    if _ffmpeg_warned:
+        return
+    try:
+        if shutil.which('ffmpeg') is None:
+            print("Warning: FFmpeg not found on PATH. Rendering may fail. See README for install instructions.")
+        _ffmpeg_warned = True
+    except Exception:
+        # Never fail due to env probing
+        _ffmpeg_warned = True
+
+
 def get_podcast_episodes(feed_url):
     """Fetch the list of episodes from the RSS feed.
 
@@ -182,6 +203,8 @@ def process_one_episode(selected, podcast_info, colors, formats_config, config_h
 
             # Create temporary directory
             with tempfile.TemporaryDirectory() as temp_dir:
+                # Warn about FFmpeg if missing (once)
+                _warn_if_no_ffmpeg()
                 # Download full audio once
                 print("\nDownloading audio...")
                 full_audio_path = os.path.join(temp_dir, "full_audio.mp3")
@@ -305,6 +328,8 @@ def process_one_episode(selected, podcast_info, colors, formats_config, config_h
 
                 # Crea directory temporanea
                 with tempfile.TemporaryDirectory() as temp_dir:
+                    # Warn about FFmpeg if missing (once)
+                    _warn_if_no_ffmpeg()
                     # Scarica audio completo una sola volta
                     print("Downloading audio...")
                     full_audio_path = os.path.join(temp_dir, "full_audio.mp3")
@@ -420,14 +445,16 @@ def process_one_episode(selected, podcast_info, colors, formats_config, config_h
 def main():
     """Funzione principale CLI"""
     # Argument parsing
-    # Minimal logging setup; services use logging for diagnostics.
-    logging.basicConfig(level=logging.INFO)
+    # Minimal logging setup; default to WARNING (less noisy). Will adjust level
+    # after parsing if --log-level is set.
+    logging.basicConfig(level=logging.WARNING)
     parser = argparse.ArgumentParser(description='Audiogram generator from podcast RSS')
     parser.add_argument('--config', type=str, help='Path to the YAML configuration file')
     parser.add_argument('--feed-url', type=str, help='URL of the podcast RSS feed')
     parser.add_argument('--episode', type=str, help="Episode(s) to process: number (e.g., 5), list (e.g., 1,3,5), 'all'/'a' for all, or 'last' for the most recent episode")
     parser.add_argument('--soundbites', type=str, help='Soundbites to generate: specific number, "all" for all, or comma-separated list (e.g., 1,3,5)')
     parser.add_argument('--output-dir', type=str, help='Output directory for generated files')
+    parser.add_argument('--log-level', type=str, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help='Logging level (default: INFO)')
     parser.add_argument('--dry-run', action='store_true', help='Stampa solo intervalli e sottotitoli dei soundbite senza generare file')
     # Sottotitoli on/off
     subs_group = parser.add_mutually_exclusive_group()
@@ -442,6 +469,11 @@ def main():
     parser.set_defaults(use_episode_cover=None)
 
     args = parser.parse_args()
+
+    # Apply log level if provided
+    if args.log_level:
+        level = getattr(logging, args.log_level.upper(), logging.INFO)
+        logging.getLogger().setLevel(level)
 
     # Carica configurazione
     # Se non viene passato --config, prova a usare un file di default (config.yml o config.yaml)
