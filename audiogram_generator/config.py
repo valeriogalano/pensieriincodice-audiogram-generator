@@ -17,6 +17,10 @@ class Config:
         'dry_run': False,
         'show_subtitles': True,
         'use_episode_cover': False,
+        'caption_labels': {
+            'episode_prefix': 'Episode',
+            'listen_full_prefix': 'Listen to the full episode',
+        },
         'colors': {
             'primary': [242, 101, 34],      # Orange (header, footer, bars)
             'background': [235, 213, 197],  # Beige (central background)
@@ -70,9 +74,9 @@ class Config:
             with open(config_file, 'r', encoding='utf-8') as f:
                 file_config = yaml.safe_load(f)
                 if file_config:
-                    # Deep merge for colors and formats
+                    # Deep merge for colors, formats and caption_labels
                     for key, value in file_config.items():
-                        if key in ['colors', 'formats'] and isinstance(value, dict):
+                        if key in ['colors', 'formats', 'caption_labels'] and isinstance(value, dict):
                             if key not in self.config:
                                 self.config[key] = {}
                             self._deep_merge(self.config[key], value)

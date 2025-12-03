@@ -51,6 +51,9 @@ def build_caption_text(
     podcast_keywords: Optional[str] = None,
     episode_keywords: Optional[str] = None,
     config_hashtags: Optional[Iterable[str]] = None,
+    *,
+    episode_prefix: str = "Episode",
+    listen_full_prefix: str = "Listen to the full episode",
 ) -> str:
     """Build the full caption text content.
 
@@ -69,10 +72,10 @@ def build_caption_text(
     hashtag_string = ' '.join(f"#{t}" for t in normalized) if normalized else '#podcast'
 
     caption = (
-        f"Episode {episode_number}: {episode_title}\n\n"
+        f"{episode_prefix} {episode_number}: {episode_title}\n\n"
         f"{soundbite_title}\n\n"
         f"{transcript_text}\n\n"
-        f"Listen to the full episode: {episode_link}\n\n"
+        f"{listen_full_prefix}: {episode_link}\n\n"
         f"{hashtag_string}\n"
     )
     return caption

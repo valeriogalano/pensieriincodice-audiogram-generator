@@ -80,3 +80,14 @@ show_subtitles: true
 # Se true, quando disponibile verrà usata la copertina specifica dell'episodio
 # invece di quella generale del podcast. Default: false
 use_episode_cover: false
+
+# Etichette della caption (opzionale)
+# Personalizza le scritte fisse che compaiono nel file di caption .txt
+# Puoi tradurle o modificarle a piacere.
+caption_labels:
+  # Prefisso prima del numero e del titolo episodio
+  # Esempio risultato: "Episodio 42: Titolo"
+  episode_prefix: "Episode"
+  # Testo prima del link all'episodio completo
+  # Esempio: "Ascolta l'episodio completo: https://..."
+  listen_full_prefix: "Listen to the full episode"

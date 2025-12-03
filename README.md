@@ -141,6 +141,8 @@ When subtitles are disabled, generated video filenames include a `_nosubs` suffi
 
 ## Configuration
 
+The application reads settings from a YAML file (see `config.yaml.example`). CLI flags override YAML values, which in turn override internal defaults.
+
 Start from the example and adjust to your needs:
 
 ```bash
@@ -191,6 +193,22 @@ hashtags:
 Notes:
 - RGB colors are expressed as `[R, G, B]` with values 0–255.
 - Formats can be enabled/disabled and resized per needs.
+
+### Caption labels (customizable fixed strings)
+
+You can customize the fixed strings used in the generated caption `.txt` files, for example to localize them. Add the following section to your `config.yaml`:
+
+```
+caption_labels:
+  # Prefix before the episode number and title
+  # Result example: "Episode 42: Title"
+  episode_prefix: "Episode"
+  # Text before the link to the full episode
+  # Result example: "Listen to the full episode: https://..."
+  listen_full_prefix: "Listen to the full episode"
+```
+
+If omitted, the defaults are used (`Episode` and `Listen to the full episode`).
 
 ## Output
 
@@ -270,9 +288,12 @@ python -m unittest tests.test_config.TestConfig.test_configuration_precedence -v
 - moviepy (≥1.0.3)
 - pillow (≥10.0.0)
 - pydub (≥0.25.1)
+- audioop-lts (≥0.2.1) — only required on Python 3.13+ where stdlib `audioop` was removed
 - numpy (≥1.24.0)
 - requests (≥2.31.0)
 - pyyaml (≥6.0)
+
+Note for Python 3.13+: The standard library module `audioop` was removed. We use the maintained backport `audioop-lts` to restore compatibility for audio processing libraries like `pydub`. It is declared as a conditional dependency in `requirements.txt` and will be installed automatically on Python 3.13+.
 
 ## Roadmap
 

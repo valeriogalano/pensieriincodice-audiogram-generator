@@ -86,15 +86,25 @@ def get_transcript_chunks(transcript_url, start_time, duration):
         return []
 
 
+# Module-level caption label defaults; can be overridden via config in main()
+CAPTION_LABEL_EPISODE_PREFIX = "Episode"
+CAPTION_LABEL_LISTEN_PREFIX = "Listen to the full episode"
+
+
 def generate_caption_file(output_path, episode_number, episode_title, episode_link,
                           soundbite_title, transcript_text, podcast_keywords=None,
-                          episode_keywords=None, config_hashtags=None):
+                          episode_keywords=None, config_hashtags=None,
+                          *, episode_prefix: str = None, listen_full_prefix: str = None):
     """
     Generate a plain-text .txt caption file for social posts (no markdown).
 
     This function delegates the pure string generation to
     ``core.captioning.build_caption_text`` and only performs file I/O here.
     """
+    # Resolve prefixes from parameters or module-level defaults
+    ep_prefix = episode_prefix if episode_prefix is not None else CAPTION_LABEL_EPISODE_PREFIX
+    listen_prefix = listen_full_prefix if listen_full_prefix is not None else CAPTION_LABEL_LISTEN_PREFIX
+
     caption = build_caption_text(
         episode_number=episode_number,
         episode_title=episode_title,
@@ -104,6 +114,8 @@ def generate_caption_file(output_path, episode_number, episode_title, episode_li
         podcast_keywords=podcast_keywords,
         episode_keywords=episode_keywords,
         config_hashtags=config_hashtags,
+        episode_prefix=ep_prefix,
+        listen_full_prefix=listen_prefix,
     )
 
     with open(output_path, 'w', encoding='utf-8') as f:
@@ -515,6 +527,15 @@ def main():
     show_subtitles = config.get('show_subtitles', True)
     dry_run = config.get('dry_run', False)
     use_episode_cover = config.get('use_episode_cover', False)
+
+    # Caption labels (allow overriding fixed strings in caption)
+    try:
+        labels = config.get('caption_labels', {}) or {}
+    except Exception:
+        labels = {}
+    global CAPTION_LABEL_EPISODE_PREFIX, CAPTION_LABEL_LISTEN_PREFIX
+    CAPTION_LABEL_EPISODE_PREFIX = labels.get('episode_prefix', CAPTION_LABEL_EPISODE_PREFIX)
+    CAPTION_LABEL_LISTEN_PREFIX = labels.get('listen_full_prefix', CAPTION_LABEL_LISTEN_PREFIX)
 
     # Chiedi feed_url interattivamente se non specificato
     if feed_url is None:
