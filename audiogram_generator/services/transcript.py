@@ -39,7 +39,12 @@ def fetch_srt(url: str, timeout: int = 10) -> str:
 
 
 def parse_srt_to_chunks(srt_text: str, start_time: float, duration: float) -> List[Dict]:
-    """Parse SRT text and return chunks fully contained within the interval.
+    """Parse SRT text and return chunks overlapping the interval, clipped.
+
+    Inclusion rule change:
+    - Previous behavior: include only blocks fully contained in [start, end].
+    - New behavior: include any block that overlaps the interval and clip
+      its timing to the interval boundaries.
 
     Chunks contain timing relative to the start of the interval: keys
     ``start``, ``end``, and ``text``.
@@ -59,14 +64,18 @@ def parse_srt_to_chunks(srt_text: str, start_time: float, duration: float) -> Li
                 entry_start = parse_srt_time(time_parts[0].strip())
                 entry_end = parse_srt_time(time_parts[1].strip())
 
-                # Include ONLY blocks entirely inside the interval
-                if (entry_start >= start_time_sec) and (entry_end <= end_time_sec):
-                    text = ' '.join(lines[2:])
-                    transcript_chunks.append({
-                        'start': max(0.0, entry_start - start_time_sec),
-                        'end': min(float(duration), entry_end - start_time_sec),
-                        'text': text,
-                    })
+                # Include blocks that overlap the interval and clip to bounds
+                if (entry_end > start_time_sec) and (entry_start < end_time_sec):
+                    clipped_start_abs = max(entry_start, start_time_sec)
+                    clipped_end_abs = min(entry_end, end_time_sec)
+                    # Guard against pathological zero/negative after clipping
+                    if clipped_end_abs > clipped_start_abs:
+                        text = ' '.join(lines[2:])
+                        transcript_chunks.append({
+                            'start': clipped_start_abs - start_time_sec,
+                            'end': clipped_end_abs - start_time_sec,
+                            'text': text,
+                        })
 
     return transcript_chunks
 
@@ -74,8 +83,8 @@ def parse_srt_to_chunks(srt_text: str, start_time: float, duration: float) -> Li
 def get_transcript_text_from_srt(srt_text: str, start_time: float, duration: float) -> str | None:
     """Return concatenated transcript text restricted to the interval.
 
-    Only blocks fully contained in the interval are used. Returns None if no
-    matching blocks are found.
+    Uses overlapping-and-clipping semantics from ``parse_srt_to_chunks``.
+    Returns None if no matching blocks are found.
     """
     chunks = parse_srt_to_chunks(srt_text, start_time, duration)
     if not chunks:
